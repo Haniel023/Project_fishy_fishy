@@ -1,9 +1,9 @@
 import * as C from '../data/config';
 import { decorById } from '../data/decor';
-import { speciesById } from '../data/fish';
+import { SPECIES, speciesById } from '../data/fish';
 import { themeById } from '../data/themes';
 import { UPGRADES } from '../data/upgrades';
-import type { Cost, DecorItem, DecorPatch, Fish, GameState, Species, Tank, UpgradeId } from './types';
+import type { Cost, DecorItem, DecorPatch, Fish, GameState, Rarity, Species, Tank, UpgradeId } from './types';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -21,11 +21,16 @@ export const createState = (now: number): GameState => ({
   tanks: [newTank('main')],
   upgrades: NO_UPGRADES,
   themes: ['lagoon'],
+  daily: { lastDay: -1, streak: 0 },
+  found: [],
+  shinyFound: [],
 });
 
 export const isSick = (f: Fish) => f.health < C.SICK_BELOW;
+export const isEgg = (f: Fish) => !!f.egg;
 export const xpNeeded = (level: number) => C.XP_PER_LEVEL * level;
 export const findFish = (s: GameState, id: string) => s.tanks.flatMap((t) => t.fish).find((f) => f.id === id);
+const tankOf = (s: GameState, fishId: string) => s.tanks.find((t) => t.fish.some((f) => f.id === fishId));
 export const upgradeValue = (s: GameState, id: UpgradeId) => UPGRADES[id][s.upgrades[id]].value;
 export const needsCare = (t: Tank) =>
   t.cleanliness < C.CARE_BELOW || t.fish.some((f) => f.hunger < C.CARE_BELOW || isSick(f));
@@ -44,13 +49,15 @@ export const priceOf = (x: { price: number; pearls?: number }): Cost => (x.pearl
 const cantAfford = (s: GameState, c: Cost) =>
   s.gold < (c.gold ?? 0) ? 'Not enough gold' : s.pearls < (c.pearls ?? 0) ? 'Not enough pearls' : null;
 const pay = (s: GameState, c: Cost): GameState => ({ ...s, gold: s.gold - (c.gold ?? 0), pearls: s.pearls - (c.pearls ?? 0) });
+const gain = (s: GameState, c: Cost): GameState => ({ ...s, gold: s.gold + (c.gold ?? 0), pearls: s.pearls + (c.pearls ?? 0) });
 
 function stepFish(f: Fish, dirty: boolean, growMult: number): Fish {
+  if (f.egg) return { ...f, egg: f.egg - 1 }; // eggs only count down
   const hunger = Math.max(0, f.hunger - C.HUNGER_DECAY);
   const health = clamp(f.health + (hunger <= 0 || dirty ? -C.HEALTH_LOSS : C.HEALTH_GAIN), 0, 100);
   const grows = health >= C.SICK_BELOW && hunger > 0;
   const growth = grows ? Math.min(1, f.growth + growMult / speciesById(f.speciesId).growMinutes) : f.growth;
-  return { ...f, hunger, health, growth };
+  return { ...f, hunger, health, growth, ...(f.rest ? { rest: f.rest - 1 } : {}) };
 }
 
 export function tick(s: GameState, minutes: number): GameState {
@@ -117,19 +124,21 @@ export function canBuy(s: GameState, tankId: string, speciesId: string): string 
   return null;
 }
 
-export function buyFish(s: GameState, tankId: string, speciesId: string, now: number, id: string): GameState {
+// roll in [0,1) decides shininess.
+export function buyFish(s: GameState, tankId: string, speciesId: string, now: number, id: string, roll: number): GameState {
   if (canBuy(s, tankId, speciesId)) return s;
   const sp = speciesById(speciesId);
-  const fish: Fish = { id, speciesId, name: sp.name, favorite: false, growth: 0, hunger: 100, health: 100, bornAt: now };
-  return mapTank(pay(s, priceOf(sp)), tankId, (t) => ({ ...t, fish: [...t.fish, fish] }));
+  const shiny = roll < C.SHINY_BUY;
+  const fish: Fish = { id, speciesId, name: sp.name, favorite: false, growth: 0, hunger: 100, health: 100, bornAt: now, shiny };
+  return discover(mapTank(pay(s, priceOf(sp)), tankId, (t) => ({ ...t, fish: [...t.fish, fish] })), speciesId, shiny);
 }
 
 export const sellValue = (f: Fish, sp: Species) =>
-  Math.round((sp.price * C.SELL_MULT * f.growth) / (isSick(f) ? 2 : 1));
+  Math.round((sp.price * C.SELL_MULT * f.growth * (f.shiny ? C.SHINY_SELL_MULT : 1)) / (isSick(f) ? 2 : 1));
 
 export function sellFish(s: GameState, fishId: string): GameState {
   const f = findFish(s, fishId);
-  if (!f || f.favorite) return s;
+  if (!f || f.favorite || isEgg(f)) return s;
   const sp = speciesById(f.speciesId);
   const next = {
     ...s,
@@ -220,9 +229,7 @@ export const decorRefund = (item: DecorItem): Cost =>
 export function removeDecor(s: GameState, tankId: string, placedId: string): GameState {
   const p = s.tanks.find((t) => t.id === tankId)?.decor.find((d) => d.id === placedId);
   if (!p) return s;
-  const r = decorRefund(decorById(p.itemId));
-  const paid = { ...s, gold: s.gold + (r.gold ?? 0), pearls: s.pearls + (r.pearls ?? 0) };
-  return mapTank(paid, tankId, (t) => ({ ...t, decor: t.decor.filter((d) => d.id !== placedId) }));
+  return mapTank(gain(s, decorRefund(decorById(p.itemId))), tankId, (t) => ({ ...t, decor: t.decor.filter((d) => d.id !== placedId) }));
 }
 
 export function canBuyTheme(s: GameState, themeId: string): string | null {
@@ -238,11 +245,70 @@ export const buyTheme = (s: GameState, themeId: string): GameState =>
 export const setTheme = (s: GameState, tankId: string, themeId: string): GameState =>
   s.themes.includes(themeId) ? mapTank(s, tankId, (t) => ({ ...t, theme: themeId })) : s;
 
+// Local calendar day number; tzOffsetMin = new Date().getTimezoneOffset().
+export const dayKey = (now: number, tzOffsetMin: number) => Math.floor((now - tzOffsetMin * 60000) / 86400000);
+export const canClaimDaily = (s: GameState, now: number, tz: number) => dayKey(now, tz) > s.daily.lastDay;
+
+// Gift for streak day 1..7 (default: the next claim).
+export const dailyReward = (s: GameState, day = (s.daily.streak % 7) + 1): Cost =>
+  day === 7 ? { pearls: C.DAILY_PEARLS } : { gold: C.DAILY_GOLD[day - 1] * s.level };
+
+export function claimDaily(s: GameState, now: number, tz: number): GameState {
+  if (!canClaimDaily(s, now, tz)) return s;
+  return { ...gain(s, dailyReward(s)), daily: { lastDay: dayKey(now, tz), streak: s.daily.streak + 1 } };
+}
+
+export const rarityDone = (found: string[], r: Rarity) => SPECIES.every((sp) => sp.rarity !== r || found.includes(sp.id));
+
+// Collection book: +1 pearl per new species (plus the set bonus when it completes a rarity), +1 per new shiny.
+export function discover(s: GameState, speciesId: string, shiny: boolean): GameState {
+  let { found, shinyFound, pearls } = s;
+  if (!found.includes(speciesId)) {
+    found = [...found, speciesId];
+    const r = speciesById(speciesId).rarity;
+    pearls += 1 + (rarityDone(found, r) ? C.SET_BONUS[r] : 0);
+  }
+  if (shiny && !shinyFound.includes(speciesId)) {
+    shinyFound = [...shinyFound, speciesId];
+    pearls += 1;
+  }
+  return pearls === s.pearls ? s : { ...s, found, shinyFound, pearls };
+}
+
+export function canBreed(s: GameState, aId: string, bId: string): string | null {
+  const tank = tankOf(s, aId);
+  const [a, b] = [findFish(s, aId), findFish(s, bId)];
+  if (s.level < C.BREED_LEVEL) return `Unlocks at Lv ${C.BREED_LEVEL}`;
+  if (!tank || !a || !b || aId === bId || tankOf(s, bId) !== tank) return 'Must be in the same tank';
+  if (a.speciesId !== b.speciesId) return 'Must be the same species';
+  if ([a, b].some((f) => f.growth < 1 || isEgg(f))) return 'Both must be adults';
+  if ([a, b].some(isSick)) return 'Too sick to breed';
+  if ([a, b].some((f) => f.rest)) return 'Resting';
+  if (tank.fish.length >= tank.capacity) return 'Tank is full';
+  return null;
+}
+
+// Lays an egg in the parents' tank; both parents rest. roll in [0,1) decides shininess.
+export function breed(s: GameState, aId: string, bId: string, now: number, id: string, roll: number): GameState {
+  if (canBreed(s, aId, bId)) return s;
+  const sp = speciesById(findFish(s, aId)!.speciesId);
+  const shiny = roll < C.SHINY_BREED;
+  const egg: Fish = { id, speciesId: sp.id, name: sp.name, favorite: false, growth: 0, hunger: 100, health: 100, bornAt: now, egg: C.HATCH_MIN[sp.rarity], shiny };
+  const rest = (f: Fish) => ({ ...f, rest: C.BREED_REST });
+  const laid = mapTank(mapFish(mapFish(s, aId, rest), bId, rest), tankOf(s, aId)!.id, (t) => ({ ...t, fish: [...t.fish, egg] }));
+  return discover(addXp(laid, C.BREED_XP), sp.id, shiny);
+}
+
 // Brings an older persisted save up to date, one version at a time.
 // v1 -> v2: add upgrades, re-level xp on the new curve. v2 -> v3: add decor, tank themes and owned themes.
+// v3 -> v4: add the daily gift and the collection book (credited for every species already owned).
 export function migrateSave(old: unknown, version: number): GameState {
   let s = old as GameState;
   if (version < 2) s = addXp({ ...s, upgrades: NO_UPGRADES }, 0);
   if (version < 3) s = { ...s, themes: ['lagoon'], tanks: s.tanks.map((t) => ({ ...t, decor: [], theme: 'lagoon' })) };
+  if (version < 4) {
+    s = { ...s, daily: { lastDay: -1, streak: 0 }, found: [], shinyFound: [] };
+    for (const f of s.tanks.flatMap((t) => t.fish)) s = discover(s, f.speciesId, false);
+  }
   return s;
 }

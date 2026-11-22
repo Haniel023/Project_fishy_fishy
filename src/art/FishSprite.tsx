@@ -36,6 +36,40 @@ const SCALES = Array.from({ length: 28 }, (_, i) => [-16 - (i % 7) * 8 - (Math.f
 const OUTLINE = 'rgba(60,40,90,.35)';
 const INK = '#3a3352';
 const line = { stroke: OUTLINE, strokeWidth: 2, strokeLinejoin: 'round' as const };
+const SICK = 'grayscale(.5) sepia(.5) hue-rotate(50deg)';
+const EGG = 'M15 1C23 1 29 14 29 23C29 31 23 35 15 35S1 31 1 23C1 14 7 1 15 1Z';
+
+// Shiny: an SVG hue-shift filter on the body only, so the gold glints (and the rarity aura on the wrapper) keep their colors.
+const ShinyFilter = ({ id, look }: { id: string; look: Look }) => (
+  <filter id={id} colorInterpolationFilters="sRGB">
+    <feColorMatrix type="hueRotate" values={String(look.shinyHue ?? 150)} />
+    <feColorMatrix type="saturate" values="1.5" />
+  </filter>
+);
+const star4 = ([x, y, r]: number[]) => {
+  const q = r * 0.22;
+  return `M${x} ${y - r}Q${x + q} ${y - q} ${x + r} ${y}Q${x + q} ${y + q} ${x} ${y + r}Q${x - q} ${y + q} ${x - r} ${y}Q${x - q} ${y - q} ${x} ${y - r}Z`;
+};
+const Glints = ({ at }: { at: number[][] }) => (
+  <>{at.map((p, i) => <path key={i} className="glint" d={star4(p)} style={{ animationDelay: `${-i * 0.7}s` }} />)}</>
+);
+
+// Egg tinted with the species colors (viewBox 30x36).
+export function EggSprite({ look, shiny, size = 30 }: { look: Look; shiny?: boolean; size?: number }) {
+  const id = useId();
+  return (
+    <svg viewBox="0 0 30 36" width={size} height={size * 1.2} overflow="visible">
+      {shiny && <defs><ShinyFilter id={id} look={look} /></defs>}
+      <g filter={shiny ? `url(#${id})` : undefined}>
+        <path d={EGG} fill={look.main} />
+        <circle cx="9" cy="21" r="3.4" fill={look.accent} /><circle cx="19" cy="27" r="2.6" fill={look.accent} /><circle cx="20" cy="15" r="2.2" fill={look.fin} />
+        <path d={EGG} fill="none" stroke={OUTLINE} strokeWidth="1.6" />
+        <ellipse cx="10" cy="10" rx="2.6" ry="4.5" transform="rotate(25 10 10)" fill="#fff" opacity=".6" />
+      </g>
+      {shiny && <Glints at={[[29, 4, 5], [2, 30, 3.5], [27, 30, 3]]} />}
+    </svg>
+  );
+}
 
 function Pattern({ look, b, id }: { look: Look; b: Body; id: string }) {
   const ex = b.eye[0];
@@ -46,11 +80,11 @@ function Pattern({ look, b, id }: { look: Look; b: Body; id: string }) {
       return <>{[12, 32].map((dx) => <rect key={dx} x={ex - dx - 5} y="0" width="9" height="80" fill={look.accent} stroke={OUTLINE} strokeWidth="1.5" />)}</>;
     case 'spots':
       return <>{SPOTS.map(([dx, dy], i) => <circle key={i} cx={ex + dx} cy={b.cy + dy} r="2.6" fill={look.accent} />)}</>;
-    case 'gradient': // accent over the back and rear, fading toward the face and belly
+    case 'gradient': // accent over the rear half, fading out before the face
       return (
         <>
-          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={b.tailX} y1={b.cy - 24} x2={ex} y2={b.cy + 8}>
-            <stop offset=".15" stopColor={look.accent} />
+          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={b.tailX} y1="0" x2={ex - 14} y2="0">
+            <stop offset=".35" stopColor={look.accent} />
             <stop offset="1" stopColor={look.accent} stopOpacity="0" />
           </linearGradient>
           <rect width="120" height="80" fill={`url(#${id})`} />
@@ -63,30 +97,34 @@ function Pattern({ look, b, id }: { look: Look; b: Body; id: string }) {
   }
 }
 
-export default function FishSprite({ look, sick, size = 96 }: { look: Look; sick?: boolean; size?: number }) {
+interface Props { look: Look; sick?: boolean; shiny?: boolean; size?: number }
+
+export default function FishSprite({ look, sick, shiny, size = 96 }: Props) {
   const clip = useId();
   const b = BODIES[look.body];
   const [ex, ey, er] = b.eye;
   const [mx, my] = b.mouth;
   return (
-    <svg viewBox="0 0 120 80" width={size} height={(size * 2) / 3} overflow="visible"
-      style={sick ? { filter: 'grayscale(.5) sepia(.5) hue-rotate(50deg)' } : undefined}>
-      <defs><clipPath id={clip}><path d={b.d} /></clipPath></defs>
-      <path d={TAILS[look.tail]} transform={`translate(${b.tailX} ${b.cy})`} fill={look.fin} {...line} />
-      <path d={DORSAL} transform={`translate(${b.fin[0]} ${b.fin[1]})`} fill={look.fin} {...line} />
-      <path d={b.d} fill={look.main} />
-      <g clipPath={`url(#${clip})`}>
-        <Pattern look={look} b={b} id={`${clip}g`} />
-        <ellipse cx={ex - 22} cy={b.cy - 13} rx="16" ry="4.5" fill="#fff" opacity=".35" />
+    <svg viewBox="0 0 120 80" width={size} height={(size * 2) / 3} overflow="visible" style={sick ? { filter: SICK } : undefined}>
+      <defs><clipPath id={clip}><path d={b.d} /></clipPath>{shiny && <ShinyFilter id={`${clip}s`} look={look} />}</defs>
+      <g filter={shiny ? `url(#${clip}s)` : undefined}>
+        <path d={TAILS[look.tail]} transform={`translate(${b.tailX} ${b.cy})`} fill={look.fin} {...line} />
+        <path d={DORSAL} transform={`translate(${b.fin[0]} ${b.fin[1]})`} fill={look.fin} {...line} />
+        <path d={b.d} fill={look.main} />
+        <g clipPath={`url(#${clip})`}>
+          <Pattern look={look} b={b} id={`${clip}g`} />
+          <ellipse cx={ex - 22} cy={b.cy - 13} rx="16" ry="4.5" fill="#fff" opacity=".35" />
+        </g>
+        <path d={b.d} fill="none" {...line} />
+        <ellipse cx={ex - 20} cy={b.cy + 8} rx="7" ry="4" transform={`rotate(-25 ${ex - 20} ${b.cy + 8})`} fill={look.fin} {...line} />
+        <circle cx={ex} cy={ey} r={er} fill={INK} />
+        <circle cx={ex + er * 0.3} cy={ey - er * 0.35} r={er * 0.4} fill="#fff" />
+        <circle cx={ex - er * 0.35} cy={ey + er * 0.35} r={er * 0.16} fill="#fff" />
+        <ellipse cx={ex - 3} cy={ey + er + 4} rx="4.5" ry="2.5" fill="#ff8fab" opacity=".55" />
+        <path d={sick ? `M${mx - 3} ${my + 1.5}q3-3 6 0` : `M${mx - 3} ${my}q3 3 6 0`}
+          fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
       </g>
-      <path d={b.d} fill="none" {...line} />
-      <ellipse cx={ex - 20} cy={b.cy + 8} rx="7" ry="4" transform={`rotate(-25 ${ex - 20} ${b.cy + 8})`} fill={look.fin} {...line} />
-      <circle cx={ex} cy={ey} r={er} fill={INK} />
-      <circle cx={ex + er * 0.3} cy={ey - er * 0.35} r={er * 0.4} fill="#fff" />
-      <circle cx={ex - er * 0.35} cy={ey + er * 0.35} r={er * 0.16} fill="#fff" />
-      <ellipse cx={ex - 3} cy={ey + er + 4} rx="4.5" ry="2.5" fill="#ff8fab" opacity=".55" />
-      <path d={sick ? `M${mx - 3} ${my + 1.5}q3-3 6 0` : `M${mx - 3} ${my}q3 3 6 0`}
-        fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
+      {shiny && <Glints at={[[108, 14, 7], [16, 62, 5], [70, 4, 4]]} />}
     </svg>
   );
 }

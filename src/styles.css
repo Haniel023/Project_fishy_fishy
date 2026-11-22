@@ -51,14 +51,20 @@ input { user-select: text; -webkit-user-select: text; }
 
 /* Tank tabs */
 .tabs { display: flex; gap: 6px; }
+.tabscroll { flex: 1; min-width: 0; display: flex; gap: 6px; margin: -4px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
 .tab {
-  display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 44px; padding: 0 9px;
+  flex: none; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 9px;
   border-radius: 999px; background: rgba(255, 255, 255, 0.7); color: var(--muted);
   font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(90, 70, 150, 0.1);
 }
 .tab.on { background: var(--pink); color: var(--ink); }
 .tab.add { padding: 0 13px; font-size: 18px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #ff5f87; box-shadow: 0 0 0 1.5px #fff; }
+.iconbtn {
+  position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.85); box-shadow: 0 2px 8px rgba(90, 70, 150, 0.1);
+}
+.iconbtn .dot { position: absolute; top: 3px; right: 3px; width: 10px; height: 10px; }
 
 /* Tank */
 /* Theme colors come from CSS variables set inline (see art/Motif.tsx themeVars). */
@@ -111,7 +117,14 @@ input { user-select: text; -webkit-user-select: text; }
   position: absolute; left: 0; top: 0; z-index: 1; width: 96px; height: 64px; margin: -32px 0 0 -48px;
   transform: translate(-999px, 0); will-change: transform; cursor: pointer; transition: opacity 0.2s;
 }
-.tank.decorate .fish { opacity: 0.4; pointer-events: none; }
+.tank.decorate :is(.fish, .egg) { opacity: 0.4; pointer-events: none; }
+/* Eggs rest on the sand and wobble now and then. */
+.egg { position: absolute; bottom: 8px; z-index: 1; padding: 4px 7px; transform: translateX(-50%); cursor: pointer; }
+.egg svg { display: block; transform-origin: 50% 100%; animation: wobble 3s ease-in-out infinite; }
+@keyframes wobble { 0%, 64%, 100% { transform: rotate(0); } 72% { transform: rotate(-9deg); } 82% { transform: rotate(7deg); } 91% { transform: rotate(-3deg); } }
+/* Shiny glints (drawn inside the fish / egg svg) */
+.glint { fill: #fff8d6; stroke: #f5b83d; stroke-width: 1; transform-box: fill-box; transform-origin: center; animation: glint 2.1s ease-in-out infinite; }
+@keyframes glint { 50% { opacity: 0.25; transform: scale(0.45); } }
 .fish svg, .sprite svg { display: block; }
 .sprite { position: relative; isolation: isolate; }
 /* Rarity: epic = lilac aura, legendary = gold aura + twinkling sparkles (wrapper only, so the sick filter on the svg still applies). */
@@ -279,20 +292,60 @@ input { user-select: text; -webkit-user-select: text; }
 .chip.rare { background: #d9ecff; }
 .chip.epic { background: #eadcff; }
 .chip.legendary { background: #fff0b3; }
+.chip.shiny { background: linear-gradient(90deg, #fff0b3, #ffd9f1, #d9edff); text-transform: none; }
+.head .sub { flex-wrap: wrap; row-gap: 4px; }
 .stat { margin: 10px 0; }
 .stat-top { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
 .stat .track { height: 12px; }
 .tag { margin-left: 6px; padding: 0 8px; border-radius: 999px; background: #ffe2a8; color: #9a6a10; font-size: 12px; }
-.facts { display: flex; justify-content: space-between; margin: 12px 0; color: var(--muted); }
+.facts { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 12px 0; color: var(--muted); }
 .facts span { display: flex; align-items: center; gap: 4px; }
 .row { display: flex; gap: 10px; }
 .row .btn { font-size: 15px; }
 .sell { background: #fff3d6; }
 .note { margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
-
-.toast {
-  position: absolute; top: calc(70px + env(safe-area-inset-top)); left: 50%; z-index: 20;
-  transform: translateX(-50%); padding: 10px 18px; border-radius: 999px; background: #fff5c4;
-  box-shadow: var(--shadow); font-weight: 600; white-space: nowrap; animation: pop 0.3s ease-out;
+.note.warn { color: #d0668a; font-size: 14px; }
+.eggline { margin: 14px 0; padding: 12px; border-radius: 16px; background: var(--soft); text-align: center; font-weight: 600; }
+.btn.breed { width: 100%; margin-top: 10px; font-size: 15px; background: #fff0f6; }
+.mates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.mates button {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; min-height: 56px;
+  padding: 8px 4px; border-radius: 16px; background: var(--soft); font-size: 13px; font-weight: 600;
 }
-@keyframes pop { from { transform: translate(-50%, -10px) scale(0.9); opacity: 0; } }
+.mates span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Daily gift */
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 8px 0 16px; }
+.day {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0;
+  padding: 8px 0; border-radius: 14px; background: var(--soft); font-size: 13px; font-weight: 600;
+}
+.day small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.day.today { background: var(--pink); box-shadow: 0 0 0 2px var(--pink-deep); }
+.day.done::after {
+  content: '✓'; position: absolute; top: -6px; right: -4px; display: grid; place-items: center;
+  width: 18px; height: 18px; border-radius: 50%; background: #6fcf97; color: #fff; font-size: 12px;
+}
+.btn.claim { width: 100%; background: var(--mint); }
+.later { margin: 0; padding: 16px; border-radius: 18px; background: var(--soft); text-align: center; font-weight: 600; color: var(--muted); }
+
+/* Fish book */
+.bookhead { display: flex; align-items: center; justify-content: space-between; }
+.bookhead span { display: flex; align-items: center; gap: 4px; font-size: 13px; text-transform: none; }
+.bookhead .got { color: #3fae74; }
+.grid.book { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.book .card { padding: 10px 4px 8px; }
+.book .card small { color: var(--ink); font-weight: 500; }
+.book .unfound small { color: var(--muted); }
+.unfound .sprite svg { filter: brightness(0) opacity(0.3); }
+.star { position: absolute; top: 4px; right: 8px; color: #f0a630; font-size: 18px; text-shadow: 0 0 6px #fff3b0; }
+
+.toasts {
+  position: absolute; top: calc(70px + env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+}
+.toast {
+  padding: 10px 18px; border-radius: 22px; background: #fff5c4; box-shadow: var(--shadow);
+  font-weight: 600; text-align: center; animation: pop 0.3s ease-out;
+}
+@keyframes pop { from { transform: translateY(-10px) scale(0.9); opacity: 0; } }

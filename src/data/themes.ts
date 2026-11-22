@@ -7,7 +7,7 @@ export const THEMES: Theme[] = [
   { id: 'river', name: 'Jungle River', gold: 1500, unlockLevel: 7, water: ['#dcf3c8', '#8acfab', '#3d9189'], sand: ['#c9a47c', '#977250'], frame: 'rgba(230,255,215,.55)', motif: 'leaves' },
   { id: 'candy', name: 'Candy Sea', pearls: 10, unlockLevel: 9, water: ['#ffe4f2', '#f5c9ec', '#c5aef6'], sand: ['#fff4d9', '#ffd3e6'], frame: 'rgba(255,255,255,.75)', motif: 'candy' },
   { id: 'sunken', name: 'Sunken City', gold: 3000, unlockLevel: 12, water: ['#9cc8ea', '#4581c2', '#1f4b8c'], sand: ['#c9ccd4', '#979cab'], frame: 'rgba(200,220,255,.45)', motif: 'ruins' },
-  { id: 'night', name: 'Night Sky', pearls: 20, unlockLevel: 16, water: ['#4b5fa2', '#2c3676', '#221c52'], sand: ['#dcdcea', '#b0b0c8'], frame: 'rgba(205,205,255,.4)', motif: 'stars' },
+  { id: 'night', name: 'Night Sky', pearls: 20, unlockLevel: 16, water: ['#4b5fa2', '#2c3676', '#221c52'], sand: ['#dcdcea', '#b0b0c8'], frame: 'rgba(205,205,255,.4)', motif: 'stars', noRays: true },
 ];
 
 export const themeById = (id: string) => THEMES.find((t) => t.id === id)!;

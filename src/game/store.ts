@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { gameNow } from './clock';
 import * as sim from './sim';
 import type { DecorPatch, GameState, UpgradeId } from './types';
 
@@ -19,17 +20,19 @@ interface Actions {
   removeDecor: (tankId: string, placedId: string) => void;
   buyTheme: (themeId: string) => void;
   setTheme: (tankId: string, themeId: string) => void;
+  claimDaily: (serverNow: number, tz: number) => void;
+  breed: (aId: string, bId: string, roll: number) => void;
 }
 
 // Thin wrapper: every action delegates to a pure function in sim.ts.
 export const useGame = create<GameState & Actions>()(
   persist(
     (set) => ({
-      ...sim.createState(Date.now()),
+      ...sim.createState(gameNow()),
       catchUp: (now) => set((s) => sim.catchUp(s, now)),
       feed: (id) => set((s) => sim.feedFish(s, id)),
       clean: (tankId) => set((s) => sim.cleanTank(s, tankId)),
-      buy: (tankId, speciesId) => set((s) => sim.buyFish(s, tankId, speciesId, Date.now(), sim.newId())),
+      buy: (tankId, speciesId) => set((s) => sim.buyFish(s, tankId, speciesId, gameNow(), sim.newId(), Math.random())),
       sell: (id) => set((s) => sim.sellFish(s, id)),
       rename: (id, name) => set((s) => sim.renameFish(s, id, name)),
       toggleFavorite: (id) => set((s) => sim.toggleFavorite(s, id)),
@@ -41,10 +44,12 @@ export const useGame = create<GameState & Actions>()(
       removeDecor: (tankId, id) => set((s) => sim.removeDecor(s, tankId, id)),
       buyTheme: (id) => set((s) => sim.buyTheme(s, id)),
       setTheme: (tankId, id) => set((s) => sim.setTheme(s, tankId, id)),
+      claimDaily: (now, tz) => set((s) => sim.claimDaily(s, now, tz)),
+      breed: (a, b, roll) => set((s) => sim.breed(s, a, b, gameNow(), sim.newId(), roll)),
     }),
     {
       name: 'pocket-fishies',
-      version: 3,
+      version: 4,
       // Only state is persisted; the default merge keeps the actions.
       migrate: (old, version) => sim.migrateSave(old, version) as GameState & Actions,
     },

@@ -17,7 +17,8 @@ const star = (i: number, r: number) => [18 + r * Math.cos(Math.PI * (i / 5 - 0.5
 const STAR = 'M' + Array.from({ length: 10 }, (_, i) => star(i, i % 2 ? 7 : 15.5).map((n) => n.toFixed(1)).join(' ')).join('L') + 'Z';
 
 type Draw = (c: string, dk: string, lt: string) => ReactNode;
-// [width, height, drawing]: viewBox units = display px, standing on the bottom edge. Strokes default to the dark shade.
+export const DECOR_SCALE = 1.2; // tank display size vs the viewBox units below
+// [width, height, drawing]: viewBox units (x DECOR_SCALE = display px), standing on the bottom edge. Strokes default to the dark shade.
 export const ART: Record<DecorArt, [number, number, Draw]> = {
   kelp: [36, 96, (c, _, lt) => <>
     <path d="M14 96C4 86 2 72 6 58C13 68 18 82 21 96Z" fill={lt} />
@@ -131,7 +132,7 @@ export const ART: Record<DecorArt, [number, number, Draw]> = {
 
 export default function DecorSprite({ item, fit }: { item: DecorItem; fit?: number }) {
   const [w, h, draw] = ART[item.art];
-  const k = fit ? Math.min(1, fit / Math.max(w, h)) : 1;
+  const k = fit ? Math.min(1, fit / Math.max(w, h)) : DECOR_SCALE;
   const dk = mix(item.color, 0, 0.32);
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width={w * k} height={h * k} overflow="visible"

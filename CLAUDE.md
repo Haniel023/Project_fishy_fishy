@@ -22,6 +22,7 @@ Cute, mobile-first web aquarium game. Vite + React 19 + TypeScript (strict) + Zu
 - Art is SVG drawn in code (`src/art/`), data-driven presets. No image files.
 - Tank animation: one requestAnimationFrame loop writing `style.transform` via refs. Never React state per frame.
 - UI-only state (mode, selection, open sheets, active tank) is React state in components, not persisted.
+- Time: use `gameNow()` from `src/game/clock.ts` (server-time corrected) for anything time-based. Never call `Date.now()` directly in game code (only `clock.ts` and `newId()` may).
 - Any change to persisted state: bump persist `version`, extend `migrateSave` in `sim.ts`, add a migration test. Never lose a player's save.
 
 ## UI rules

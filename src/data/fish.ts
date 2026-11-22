@@ -1,15 +1,17 @@
-import type { Species } from '../game/types';
+import type { Rarity, Species } from '../game/types';
+
+export const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 // pattern 'none' draws a soft belly in the accent color.
 export const SPECIES: Species[] = [
   { id: 'goldfish', name: 'Goldfish', rarity: 'common', price: 20, growMinutes: 30, unlockLevel: 1,
     look: { body: 'round', tail: 'veil', main: '#ffb36b', accent: '#ffe2b8', fin: '#ff9472', pattern: 'none' } },
   { id: 'guppy', name: 'Guppy', rarity: 'common', price: 25, growMinutes: 35, unlockLevel: 1,
-    look: { body: 'long', tail: 'fan', main: '#cfe3f5', accent: '#f6f9ff', fin: '#c49bff', pattern: 'none' } },
+    look: { body: 'long', tail: 'fan', main: '#cfe3f5', accent: '#f6f9ff', fin: '#c49bff', pattern: 'none', shinyHue: 100 } },
   { id: 'neon', name: 'Neon Tetra', rarity: 'common', price: 30, growMinutes: 40, unlockLevel: 1,
     look: { body: 'long', tail: 'fork', main: '#6fc3ff', accent: '#ff8095', fin: '#d4ecff', pattern: 'none' } },
   { id: 'molly', name: 'Molly', rarity: 'common', price: 35, growMinutes: 45, unlockLevel: 2,
-    look: { body: 'tall', tail: 'round', main: '#8e89b8', accent: '#c4c0e2', fin: '#77729f', pattern: 'none' } },
+    look: { body: 'tall', tail: 'round', main: '#8e89b8', accent: '#c4c0e2', fin: '#77729f', pattern: 'none', shinyHue: 90 } },
   { id: 'platy', name: 'Platy', rarity: 'common', price: 40, growMinutes: 45, unlockLevel: 2,
     look: { body: 'round', tail: 'fan', main: '#ff8a8a', accent: '#ffd0c2', fin: '#ffb04d', pattern: 'none' } },
   { id: 'danio', name: 'Zebra Danio', rarity: 'common', price: 45, growMinutes: 50, unlockLevel: 3,
@@ -27,13 +29,13 @@ export const SPECIES: Species[] = [
   { id: 'honey', name: 'Honey Gourami', rarity: 'common', price: 75, growMinutes: 70, unlockLevel: 6,
     look: { body: 'tall', tail: 'round', main: '#ffd56e', accent: '#fff2c7', fin: '#f2b33d', pattern: 'none' } },
   { id: 'betta', name: 'Betta', rarity: 'rare', price: 150, growMinutes: 120, unlockLevel: 5,
-    look: { body: 'long', tail: 'flowy', main: '#86acff', accent: '#cf7bff', fin: '#a58cff', pattern: 'gradient' } },
+    look: { body: 'long', tail: 'flowy', main: '#86acff', accent: '#cf7bff', fin: '#a58cff', pattern: 'gradient', shinyHue: 100 } },
   { id: 'angel', name: 'Angelfish', rarity: 'rare', price: 180, growMinutes: 135, unlockLevel: 5,
-    look: { body: 'angel', tail: 'fan', main: '#f5f2ff', accent: '#9d96bd', fin: '#ddd7f5', pattern: 'band' } },
+    look: { body: 'angel', tail: 'fan', main: '#f5f2ff', accent: '#9d96bd', fin: '#ddd7f5', pattern: 'band', shinyHue: 100 } },
   { id: 'sword', name: 'Swordtail', rarity: 'rare', price: 200, growMinutes: 150, unlockLevel: 6,
     look: { body: 'long', tail: 'sword', main: '#9fe3b8', accent: '#e8fff1', fin: '#ff8a6b', pattern: 'none' } },
   { id: 'gourami', name: 'Pearl Gourami', rarity: 'rare', price: 220, growMinutes: 150, unlockLevel: 6,
-    look: { body: 'tall', tail: 'round', main: '#ad9ad6', accent: '#ffffff', fin: '#ffb18a', pattern: 'spots' } },
+    look: { body: 'tall', tail: 'round', main: '#ad9ad6', accent: '#ffffff', fin: '#ffb18a', pattern: 'spots', shinyHue: 300 } },
   { id: 'rainbow', name: 'Rainbowfish', rarity: 'rare', price: 250, growMinutes: 165, unlockLevel: 7,
     look: { body: 'long', tail: 'fork', main: '#8fd0ff', accent: '#ffad6b', fin: '#ffd77a', pattern: 'gradient' } },
   { id: 'puffer', name: 'Pufferfish', rarity: 'rare', price: 280, growMinutes: 180, unlockLevel: 7,
@@ -57,11 +59,11 @@ export const SPECIES: Species[] = [
   { id: 'emperor', name: 'Emperor Angelfish', rarity: 'epic', price: 2800, growMinutes: 720, unlockLevel: 18,
     look: { body: 'angel', tail: 'round', main: '#5181e0', accent: '#ffe066', fin: '#ffd24d', pattern: 'stripes' } },
   { id: 'aurora', name: 'Aurora Betta', rarity: 'legendary', price: 4000, pearls: 20, growMinutes: 1440, unlockLevel: 20,
-    look: { body: 'long', tail: 'flowy', main: '#c2f0ff', accent: '#ff9fe0', fin: '#c4a6ff', pattern: 'gradient' } },
+    look: { body: 'long', tail: 'flowy', main: '#c2f0ff', accent: '#ff9fe0', fin: '#c4a6ff', pattern: 'gradient', shinyHue: 60 } },
   { id: 'dragon', name: 'Golden Dragonfish', rarity: 'legendary', price: 5000, pearls: 25, growMinutes: 1440, unlockLevel: 22,
     look: { body: 'long', tail: 'veil', main: '#ffd65c', accent: '#e39a1c', fin: '#ffb347', pattern: 'scales' } },
   { id: 'moonpearl', name: 'Moonpearl Puffer', rarity: 'legendary', price: 6000, pearls: 30, growMinutes: 1440, unlockLevel: 25,
-    look: { body: 'puff', tail: 'round', main: '#fdfbff', accent: '#f4d6f0', fin: '#efe6fb', pattern: 'gradient' } },
+    look: { body: 'puff', tail: 'round', main: '#fdfbff', accent: '#f4d6f0', fin: '#efe6fb', pattern: 'gradient', shinyHue: 270 } },
 ];
 
 export const speciesById = (id: string) => SPECIES.find((s) => s.id === id)!;

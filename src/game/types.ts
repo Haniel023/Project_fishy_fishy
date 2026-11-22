@@ -7,6 +7,7 @@ export interface Look {
   accent: string;
   fin: string;
   pattern: 'none' | 'stripes' | 'spots' | 'band' | 'gradient' | 'scales';
+  shinyHue?: number; // hue shift (deg) of the shiny variant, if the default looks bad
 }
 
 export interface Species {
@@ -29,6 +30,9 @@ export interface Fish {
   hunger: number; // 0..100 (100 = full)
   health: number; // 0..100
   bornAt: number; // ms
+  shiny?: boolean;
+  egg?: number; // minutes until it hatches (an egg does not change otherwise)
+  rest?: number; // minutes until it can breed again
 }
 
 export interface Tank {
@@ -66,6 +70,7 @@ export interface Theme extends Cost {
   sand: [string, string]; // light, dark
   frame: string;
   motif: 'none' | 'coral' | 'leaves' | 'candy' | 'ruins' | 'stars';
+  noRays?: boolean; // hide the sun rays
 }
 
 export type UpgradeId = 'food' | 'tool' | 'filter' | 'heater';
@@ -80,6 +85,9 @@ export interface GameState {
   upgrades: Record<UpgradeId, number>; // current level index per upgrade (player-wide)
   themes: string[]; // owned theme ids (player-wide)
   lastTick: number; // ms
+  daily: { lastDay: number; streak: number }; // lastDay = dayKey of the last claim
+  found: string[]; // species ids in the collection book
+  shinyFound: string[];
 }
 
 export type Mode = 'none' | 'feed' | 'clean' | 'decorate';

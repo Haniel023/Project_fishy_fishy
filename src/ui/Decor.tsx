@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
-import DecorSprite, { ART } from '../art/DecorSprite';
+import DecorSprite, { ART, DECOR_SCALE } from '../art/DecorSprite';
 import { DECOR_DRAG_PX, SELL_CONFIRM_MS } from '../data/config';
 import { decorById } from '../data/decor';
 import { decorRefund, decorX } from '../game/sim';
@@ -78,7 +78,7 @@ export default function Decor({ tank, editing, sel, setSel, onShop }: Props) {
       </>}
       {picked && pickedItem && (
         <div ref={tools} className="dtools" onPointerDown={stop}
-          style={{ '--x': `${picked.x * 100}%`, bottom: base(picked.front) + ART[pickedItem.art][1] + 10 } as CSSProperties}>
+          style={{ '--x': `${picked.x * 100}%`, bottom: base(picked.front) + ART[pickedItem.art][1] * DECOR_SCALE + 10 } as CSSProperties}>
           <button onClick={() => editDecor(tank.id, picked.id, { flip: !picked.flip })}>Flip</button>
           <button onClick={() => editDecor(tank.id, picked.id, { front: !picked.front })}>{picked.front ? 'To back' : 'To front'}</button>
           <button className="rm" onClick={onRemove}>

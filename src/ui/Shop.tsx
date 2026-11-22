@@ -4,17 +4,16 @@ import FishSprite from '../art/FishSprite';
 import Motif, { themeVars } from '../art/Motif';
 import { CAPACITY_STEP, MAX_DECOR, MAX_TANKS } from '../data/config';
 import { DECOR } from '../data/decor';
-import { SPECIES } from '../data/fish';
+import { RARITIES, SPECIES } from '../data/fish';
 import { THEMES } from '../data/themes';
 import { UPGRADES } from '../data/upgrades';
 import * as sim from '../game/sim';
 import { useGame } from '../game/store';
-import type { Cost, Rarity, UpgradeId } from '../game/types';
+import type { Cost, UpgradeId } from '../game/types';
 import { Price } from './Hud';
 
 export type ShopTab = 'fish' | 'decor' | 'themes' | 'supplies' | 'tanks';
 const TABS: [ShopTab, string][] = [['fish', 'Fish'], ['decor', 'Decor'], ['themes', 'Themes'], ['supplies', 'Supplies'], ['tanks', 'Tanks']];
-const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 const BY_UNLOCK = [...SPECIES].sort((a, b) => a.unlockLevel - b.unlockLevel);
 const SUPPLIES: [UpgradeId, string, (v: number) => string][] = [
   ['food', 'Food', (v) => `+${v} fullness`],

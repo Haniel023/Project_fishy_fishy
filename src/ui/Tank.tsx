@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
-import FishSprite from '../art/FishSprite';
+import FishSprite, { EggSprite } from '../art/FishSprite';
 import Motif, { themeVars } from '../art/Motif';
 import * as C from '../data/config';
 import { speciesById } from '../data/fish';
@@ -18,6 +18,7 @@ const BUBBLES = Array.from({ length: 9 }, (_, i) => ({
   left: `${6 + ((i * 37) % 88)}%`, size: 6 + ((i * 5) % 9), dur: 6 + ((i * 3) % 6), delay: -i * 1.3,
 }));
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
+const eggX = (id: string) => 8 + ((Math.abs([...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)) * 37) % 84); // % of width, stable per egg
 
 interface Props { tankId: string; mode: Mode; onSelect: (id: string) => void; onShop: (tab: ShopTab) => void }
 
@@ -46,7 +47,7 @@ export default function Tank({ tankId, mode, onSelect, onShop }: Props) {
       const floor = box.current!.clientHeight - SAND;
       const spot = (): [number, number] => [rand(50, w - 50), rand(40, floor - 30)];
       const { tanks, feed } = useGame.getState();
-      const fish = tanks.find((t) => t.id === tankId)?.fish ?? [];
+      const fish = (tanks.find((t) => t.id === tankId)?.fish ?? []).filter((f) => !f.egg); // eggs rest on the sand
       const ms = motions.current;
 
       pellets.current = pellets.current.filter((p) => {
@@ -164,7 +165,7 @@ export default function Tank({ tankId, mode, onSelect, onShop }: Props) {
     <div ref={box} className={`tank ${mode}`} style={themeVars(theme)}
       onPointerDown={onDown} onClick={onClick} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
       <Motif motif={theme.motif} />
-      {['8%', '42%', '74%'].map((left, i) => <div key={left} className="ray" style={{ left, animationDelay: `${-i * 3}s` }} />)}
+      {!theme.noRays && ['8%', '42%', '74%'].map((left, i) => <div key={left} className="ray" style={{ left, animationDelay: `${-i * 3}s` }} />)}
       {BUBBLES.map((b, i) => (
         <span key={i} className="bubble"
           style={{ left: b.left, width: b.size, height: b.size, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s` }} />
@@ -173,10 +174,14 @@ export default function Tank({ tankId, mode, onSelect, onShop }: Props) {
       {tank.fish.length === 0 && <div className="empty">Tap Shop to get your first fish</div>}
       {tank.fish.map((f) => {
         const sp = speciesById(f.speciesId);
-        return (
+        return f.egg ? (
+          <div key={f.id} data-fish={f.id} className="egg" style={{ left: `${eggX(f.id)}%` }}>
+            <EggSprite look={sp.look} shiny={f.shiny} />
+          </div>
+        ) : (
           <div key={f.id} data-fish={f.id} className={`fish ${sp.rarity}`}
             ref={(el) => { if (el) els.current.set(f.id, el); else els.current.delete(f.id); }}>
-            <FishSprite look={sp.look} sick={isSick(f)} />
+            <FishSprite look={sp.look} sick={isSick(f)} shiny={f.shiny} />
           </div>
         );
       })}
