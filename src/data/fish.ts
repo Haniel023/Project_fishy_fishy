@@ -33,7 +33,7 @@ export const SPECIES: Species[] = [
   { id: 'sword', name: 'Swordtail', rarity: 'rare', price: 200, growMinutes: 150, unlockLevel: 6,
     look: { body: 'long', tail: 'sword', main: '#9fe3b8', accent: '#e8fff1', fin: '#ff8a6b', pattern: 'none' } },
   { id: 'gourami', name: 'Pearl Gourami', rarity: 'rare', price: 220, growMinutes: 150, unlockLevel: 6,
-    look: { body: 'tall', tail: 'round', main: '#d6c8ea', accent: '#ffffff', fin: '#ffb18a', pattern: 'spots' } },
+    look: { body: 'tall', tail: 'round', main: '#ad9ad6', accent: '#ffffff', fin: '#ffb18a', pattern: 'spots' } },
   { id: 'rainbow', name: 'Rainbowfish', rarity: 'rare', price: 250, growMinutes: 165, unlockLevel: 7,
     look: { body: 'long', tail: 'fork', main: '#8fd0ff', accent: '#ffad6b', fin: '#ffd77a', pattern: 'gradient' } },
   { id: 'puffer', name: 'Pufferfish', rarity: 'rare', price: 280, growMinutes: 180, unlockLevel: 7,
@@ -53,7 +53,7 @@ export const SPECIES: Species[] = [
   { id: 'arowana', name: 'Silver Arowana', rarity: 'epic', price: 2100, growMinutes: 660, unlockLevel: 15,
     look: { body: 'long', tail: 'round', main: '#e4e9f6', accent: '#a5b0d4', fin: '#c6cfe8', pattern: 'scales' } },
   { id: 'flowerhorn', name: 'Flowerhorn', rarity: 'epic', price: 2400, growMinutes: 690, unlockLevel: 16,
-    look: { body: 'round', tail: 'fan', main: '#ffb3c6', accent: '#ff5f8a', fin: '#ff9fbf', pattern: 'gradient' } },
+    look: { body: 'round', tail: 'fan', main: '#ffbccd', accent: '#ec2f6b', fin: '#ff8fb3', pattern: 'gradient' } },
   { id: 'emperor', name: 'Emperor Angelfish', rarity: 'epic', price: 2800, growMinutes: 720, unlockLevel: 18,
     look: { body: 'angel', tail: 'round', main: '#5181e0', accent: '#ffe066', fin: '#ffd24d', pattern: 'stripes' } },
   { id: 'aurora', name: 'Aurora Betta', rarity: 'legendary', price: 4000, pearls: 20, growMinutes: 1440, unlockLevel: 20,
@@ -61,7 +61,7 @@ export const SPECIES: Species[] = [
   { id: 'dragon', name: 'Golden Dragonfish', rarity: 'legendary', price: 5000, pearls: 25, growMinutes: 1440, unlockLevel: 22,
     look: { body: 'long', tail: 'veil', main: '#ffd65c', accent: '#e39a1c', fin: '#ffb347', pattern: 'scales' } },
   { id: 'moonpearl', name: 'Moonpearl Puffer', rarity: 'legendary', price: 6000, pearls: 30, growMinutes: 1440, unlockLevel: 25,
-    look: { body: 'puff', tail: 'round', main: '#f5f1ff', accent: '#ad9cff', fin: '#d8ccff', pattern: 'gradient' } },
+    look: { body: 'puff', tail: 'round', main: '#fdfbff', accent: '#f4d6f0', fin: '#efe6fb', pattern: 'gradient' } },
 ];
 
 export const speciesById = (id: string) => SPECIES.find((s) => s.id === id)!;

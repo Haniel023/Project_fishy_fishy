@@ -36,6 +36,36 @@ export interface Tank {
   capacity: number;
   cleanliness: number; // 0..100
   fish: Fish[];
+  decor: Placed[];
+  theme: string; // theme id
+}
+
+export type DecorArt = 'kelp' | 'grass' | 'coral' | 'fan' | 'pebbles' | 'rock' | 'arch' | 'clam' | 'conch' | 'star'
+  | 'castle' | 'chest' | 'ship' | 'helmet' | 'bubbler' | 'mushroom';
+
+export interface DecorItem {
+  id: string;
+  name: string;
+  art: DecorArt;
+  color: string;
+  price: number; // gold, unless pearls is set
+  pearls?: number;
+  unlockLevel: number;
+  fx?: 'sway' | 'bubbles' | 'glow';
+}
+
+export interface Placed { id: string; itemId: string; x: number /* 0.05..0.95 of tank width */; front: boolean; flip: boolean }
+export type DecorPatch = Partial<Pick<Placed, 'x' | 'front' | 'flip'>>;
+
+// Looks only. Cost (gold or pearls) comes from Cost; none = free.
+export interface Theme extends Cost {
+  id: string;
+  name: string;
+  unlockLevel: number;
+  water: [string, string, string]; // top, mid, bottom
+  sand: [string, string]; // light, dark
+  frame: string;
+  motif: 'none' | 'coral' | 'leaves' | 'candy' | 'ruins' | 'stars';
 }
 
 export type UpgradeId = 'food' | 'tool' | 'filter' | 'heater';
@@ -48,7 +78,8 @@ export interface GameState {
   level: number;
   tanks: Tank[];
   upgrades: Record<UpgradeId, number>; // current level index per upgrade (player-wide)
+  themes: string[]; // owned theme ids (player-wide)
   lastTick: number; // ms
 }
 
-export type Mode = 'none' | 'feed' | 'clean';
+export type Mode = 'none' | 'feed' | 'clean' | 'decorate';

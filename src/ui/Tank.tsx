@@ -1,10 +1,14 @@
-import { useEffect, useRef, type MouseEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import FishSprite from '../art/FishSprite';
+import Motif, { themeVars } from '../art/Motif';
 import * as C from '../data/config';
 import { speciesById } from '../data/fish';
+import { themeById } from '../data/themes';
 import { isSick } from '../game/sim';
 import { useGame } from '../game/store';
 import type { Mode } from '../game/types';
+import Decor from './Decor';
+import type { ShopTab } from './Shop';
 
 interface Motion { x: number; y: number; vx: number; vy: number; tx: number; ty: number; face: number; phase: number; speed: number }
 interface Pellet { x: number; y: number; born: number; el: HTMLDivElement }
@@ -15,9 +19,9 @@ const BUBBLES = Array.from({ length: 9 }, (_, i) => ({
 }));
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
-interface Props { tankId: string; mode: Mode; onSelect: (id: string) => void }
+interface Props { tankId: string; mode: Mode; onSelect: (id: string) => void; onShop: (tab: ShopTab) => void }
 
-export default function Tank({ tankId, mode, onSelect }: Props) {
+export default function Tank({ tankId, mode, onSelect, onShop }: Props) {
   const tank = useGame((s) => s.tanks.find((t) => t.id === tankId)!);
   const clean = useGame((s) => s.clean);
   const box = useRef<HTMLDivElement>(null);
@@ -27,6 +31,8 @@ export default function Tank({ tankId, mode, onSelect }: Props) {
   const motions = useRef(new Map<string, Motion>());
   const pellets = useRef<Pellet[]>([]);
   const drag = useRef<{ x: number; y: number; dist: number } | null>(null);
+  const [sel, setSel] = useState<string | null>(null); // selected decor (decorate mode)
+  const theme = themeById(tank.theme);
 
   // One rAF loop moves fish and pellets by writing style.transform directly.
   useEffect(() => {
@@ -133,7 +139,7 @@ export default function Tank({ tankId, mode, onSelect }: Props) {
       drag.current = { x, y, dist: 0 };
       e.currentTarget.setPointerCapture(e.pointerId);
       showSponge(x, y);
-    }
+    } else if (mode === 'decorate') setSel(null); // tap on empty water (decor items stop propagation)
   };
   // Select on click, not pointerdown: after a touch tap the click would hit the new sheet's backdrop and close it.
   const onClick = (e: MouseEvent) => {
@@ -155,7 +161,9 @@ export default function Tank({ tankId, mode, onSelect }: Props) {
   };
 
   return (
-    <div ref={box} className={`tank ${mode}`} onPointerDown={onDown} onClick={onClick} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+    <div ref={box} className={`tank ${mode}`} style={themeVars(theme)}
+      onPointerDown={onDown} onClick={onClick} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+      <Motif motif={theme.motif} />
       {['8%', '42%', '74%'].map((left, i) => <div key={left} className="ray" style={{ left, animationDelay: `${-i * 3}s` }} />)}
       {BUBBLES.map((b, i) => (
         <span key={i} className="bubble"
@@ -172,6 +180,7 @@ export default function Tank({ tankId, mode, onSelect }: Props) {
           </div>
         );
       })}
+      <Decor tank={tank} editing={mode === 'decorate'} sel={sel} setSel={setSel} onShop={onShop} />
       <div ref={layer} className="layer" />
       <div className="algae" style={{ opacity: (1 - tank.cleanliness / 100) * 0.8 }} />
       <div ref={sponge} className="sponge" />

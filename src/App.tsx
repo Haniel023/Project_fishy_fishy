@@ -15,6 +15,12 @@ export default function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [shop, setShop] = useState<ShopTab | null>(null);
   const [active, setActive] = useState(0); // shown tank index (not persisted)
+  const count = useGame((s) => s.tanks.length);
+  const [seen, setSeen] = useState(count);
+  if (count !== seen) { // a tank was just bought: show it
+    setSeen(count);
+    if (count > seen) setActive(count - 1);
+  }
   const tankId = useGame((s) => s.tanks[active].id);
   const openShop = (tab: ShopTab) => { setMode('none'); setShop(tab); };
   const [toast, setToast] = useState<string | null>(null);
@@ -49,7 +55,7 @@ export default function App() {
     <div className="app">
       <Hud />
       <TankTabs active={active} onPick={setActive} onAdd={() => openShop('tanks')} />
-      <Tank key={tankId} tankId={tankId} mode={mode} onSelect={setSelected} />
+      <Tank key={tankId} tankId={tankId} mode={mode} onSelect={setSelected} onShop={setShop} />
       <ActionBar mode={mode} setMode={setMode} onShop={() => openShop('fish')} />
       {selected && <FishPanel fishId={selected} onClose={() => setSelected(null)} />}
       {shop && <Shop tab={shop} tankIndex={active} onClose={() => setShop(null)} />}

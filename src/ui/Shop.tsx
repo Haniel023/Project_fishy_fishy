@@ -1,15 +1,19 @@
 import { Fragment, useState } from 'react';
+import DecorSprite from '../art/DecorSprite';
 import FishSprite from '../art/FishSprite';
-import { CAPACITY_STEP, MAX_TANKS } from '../data/config';
+import Motif, { themeVars } from '../art/Motif';
+import { CAPACITY_STEP, MAX_DECOR, MAX_TANKS } from '../data/config';
+import { DECOR } from '../data/decor';
 import { SPECIES } from '../data/fish';
+import { THEMES } from '../data/themes';
 import { UPGRADES } from '../data/upgrades';
 import * as sim from '../game/sim';
 import { useGame } from '../game/store';
 import type { Cost, Rarity, UpgradeId } from '../game/types';
-import { Coin, Pearl } from './Hud';
+import { Price } from './Hud';
 
-export type ShopTab = 'fish' | 'supplies' | 'tanks';
-const TABS: [ShopTab, string][] = [['fish', 'Fish'], ['supplies', 'Supplies'], ['tanks', 'Tanks']];
+export type ShopTab = 'fish' | 'decor' | 'themes' | 'supplies' | 'tanks';
+const TABS: [ShopTab, string][] = [['fish', 'Fish'], ['decor', 'Decor'], ['themes', 'Themes'], ['supplies', 'Supplies'], ['tanks', 'Tanks']];
 const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 const BY_UNLOCK = [...SPECIES].sort((a, b) => a.unlockLevel - b.unlockLevel);
 const SUPPLIES: [UpgradeId, string, (v: number) => string][] = [
@@ -18,9 +22,6 @@ const SUPPLIES: [UpgradeId, string, (v: number) => string][] = [
   ['filter', 'Filter', (v) => (v < 1 ? `dirt −${Math.round((1 - v) * 100)}%` : 'normal dirt')],
   ['heater', 'Heater', (v) => (v > 0 ? `growth +${Math.round(v * 100)}%` : 'normal growth')],
 ];
-
-const Price = ({ cost }: { cost: Cost }) =>
-  cost.pearls ? <><Pearl size={18} />{cost.pearls}</> : <><Coin size={18} />{cost.gold}</>;
 
 // Buy button with the reason it is blocked; shows "Max" when there is nothing left to buy.
 function Buy({ cost, reason, onBuy }: { cost?: Cost; reason: string | null; onBuy: () => void }) {
@@ -72,6 +73,45 @@ export default function Shop({ tab: initial, tankIndex, onClose }: Props) {
               </div>
             </Fragment>
           ))}
+        </>}
+
+        {tab === 'decor' && <>
+          <p className="sub">Tank {tankIndex + 1} · {tank.decor.length}/{MAX_DECOR} decor</p>
+          <div className="grid">
+            {DECOR.map((it) => {
+              const locked = game.level < it.unlockLevel;
+              return (
+                <div key={it.id} className={`card${locked ? ' locked' : ''}`}>
+                  {locked && <span className="lock">Lv {it.unlockLevel}</span>}
+                  <div className="sprite dprev"><DecorSprite item={it} fit={84} /></div>
+                  <b>{it.name}</b>
+                  <Buy cost={sim.priceOf(it)} reason={sim.canBuyDecor(game, tank.id, it.id)}
+                    onBuy={() => game.buyDecor(tank.id, it.id, 0.15 + Math.random() * 0.7)} />
+                </div>
+              );
+            })}
+          </div>
+        </>}
+
+        {tab === 'themes' && <>
+          <p className="sub">Tank {tankIndex + 1} · owned themes work on every tank</p>
+          <div className="grid">
+            {THEMES.map((th) => {
+              const owned = game.themes.includes(th.id);
+              const locked = !owned && game.level < th.unlockLevel;
+              const inUse = tank.theme === th.id;
+              return (
+                <div key={th.id} className={`card${locked ? ' locked' : ''}`}>
+                  {locked && <span className="lock">Lv {th.unlockLevel}</span>}
+                  <div className="sprite tprev" style={themeVars(th)}><Motif motif={th.motif} /><div className="sand" /></div>
+                  <b>{th.name}</b>
+                  {owned
+                    ? <button className="buy" disabled={inUse} onClick={() => game.setTheme(tank.id, th.id)}>{inUse ? 'In use' : 'Use'}</button>
+                    : <Buy cost={th} reason={sim.canBuyTheme(game, th.id)} onBuy={() => game.buyTheme(th.id)} />}
+                </div>
+              );
+            })}
+          </div>
         </>}
 
         {tab === 'supplies' && <div className="list">

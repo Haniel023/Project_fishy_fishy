@@ -1,13 +1,15 @@
 import * as C from '../data/config';
+import { decorById } from '../data/decor';
 import { speciesById } from '../data/fish';
+import { themeById } from '../data/themes';
 import { UPGRADES } from '../data/upgrades';
-import type { Cost, Fish, GameState, Species, Tank, UpgradeId } from './types';
+import type { Cost, DecorItem, DecorPatch, Fish, GameState, Species, Tank, UpgradeId } from './types';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-const newTank = (id: string): Tank => ({ id, capacity: C.TANK_CAPACITY, cleanliness: 100, fish: [] });
+const newTank = (id: string): Tank => ({ id, capacity: C.TANK_CAPACITY, cleanliness: 100, fish: [], decor: [], theme: 'lagoon' });
 const NO_UPGRADES = { food: 0, tool: 0, filter: 0, heater: 0 };
 
 export const createState = (now: number): GameState => ({
@@ -18,6 +20,7 @@ export const createState = (now: number): GameState => ({
   lastTick: now,
   tanks: [newTank('main')],
   upgrades: NO_UPGRADES,
+  themes: ['lagoon'],
 });
 
 export const isSick = (f: Fish) => f.health < C.SICK_BELOW;
@@ -36,8 +39,8 @@ const mapTank = (s: GameState, id: string, fn: (t: Tank) => Tank): GameState => 
   tanks: s.tanks.map((t) => (t.id === id ? fn(t) : t)),
 });
 
-// Prices are in gold or pearls.
-export const priceOf = (sp: Species): Cost => (sp.pearls ? { pearls: sp.pearls } : { gold: sp.price });
+// Prices are in gold or pearls (fish and decor).
+export const priceOf = (x: { price: number; pearls?: number }): Cost => (x.pearls ? { pearls: x.pearls } : { gold: x.price });
 const cantAfford = (s: GameState, c: Cost) =>
   s.gold < (c.gold ?? 0) ? 'Not enough gold' : s.pearls < (c.pearls ?? 0) ? 'Not enough pearls' : null;
 const pay = (s: GameState, c: Cost): GameState => ({ ...s, gold: s.gold - (c.gold ?? 0), pearls: s.pearls - (c.pearls ?? 0) });
@@ -188,8 +191,58 @@ export function buyTank(s: GameState, id: string): GameState {
   return { ...pay(s, c), tanks: [...s.tanks, newTank(id)] };
 }
 
-// Brings an older persisted save up to date. v1 -> v2: add upgrades, re-level xp on the new curve.
+export const decorX = (x: number) => clamp(x, 0.05, 0.95);
+
+export function canBuyDecor(s: GameState, tankId: string, itemId: string): string | null {
+  const item = decorById(itemId);
+  const tank = s.tanks.find((t) => t.id === tankId);
+  if (s.level < item.unlockLevel) return `Locked until Lv ${item.unlockLevel}`;
+  if (!tank || tank.decor.length >= C.MAX_DECOR) return 'Tank decor is full';
+  return cantAfford(s, priceOf(item));
+}
+
+export function buyDecor(s: GameState, tankId: string, itemId: string, id: string, x: number): GameState {
+  if (canBuyDecor(s, tankId, itemId)) return s;
+  const placed = { id, itemId, x: decorX(x), front: false, flip: false };
+  return mapTank(pay(s, priceOf(decorById(itemId))), tankId, (t) => ({ ...t, decor: [...t.decor, placed] }));
+}
+
+export const editDecor = (s: GameState, tankId: string, placedId: string, patch: DecorPatch) =>
+  mapTank(s, tankId, (t) => ({
+    ...t,
+    decor: t.decor.map((d) => (d.id === placedId ? { ...d, ...patch, x: decorX(patch.x ?? d.x) } : d)),
+  }));
+
+// Removing decor refunds half its price, rounded down, in the same currency.
+export const decorRefund = (item: DecorItem): Cost =>
+  item.pearls ? { pearls: Math.floor(item.pearls / 2) } : { gold: Math.floor(item.price / 2) };
+
+export function removeDecor(s: GameState, tankId: string, placedId: string): GameState {
+  const p = s.tanks.find((t) => t.id === tankId)?.decor.find((d) => d.id === placedId);
+  if (!p) return s;
+  const r = decorRefund(decorById(p.itemId));
+  const paid = { ...s, gold: s.gold + (r.gold ?? 0), pearls: s.pearls + (r.pearls ?? 0) };
+  return mapTank(paid, tankId, (t) => ({ ...t, decor: t.decor.filter((d) => d.id !== placedId) }));
+}
+
+export function canBuyTheme(s: GameState, themeId: string): string | null {
+  const th = themeById(themeId);
+  if (s.themes.includes(themeId)) return 'Owned';
+  if (s.level < th.unlockLevel) return `Locked until Lv ${th.unlockLevel}`;
+  return cantAfford(s, th);
+}
+
+export const buyTheme = (s: GameState, themeId: string): GameState =>
+  canBuyTheme(s, themeId) ? s : { ...pay(s, themeById(themeId)), themes: [...s.themes, themeId] };
+
+export const setTheme = (s: GameState, tankId: string, themeId: string): GameState =>
+  s.themes.includes(themeId) ? mapTank(s, tankId, (t) => ({ ...t, theme: themeId })) : s;
+
+// Brings an older persisted save up to date, one version at a time.
+// v1 -> v2: add upgrades, re-level xp on the new curve. v2 -> v3: add decor, tank themes and owned themes.
 export function migrateSave(old: unknown, version: number): GameState {
-  const s = old as GameState;
-  return version < 2 ? addXp({ ...s, upgrades: NO_UPGRADES }, 0) : s;
+  let s = old as GameState;
+  if (version < 2) s = addXp({ ...s, upgrades: NO_UPGRADES }, 0);
+  if (version < 3) s = { ...s, themes: ['lagoon'], tanks: s.tanks.map((t) => ({ ...t, decor: [], theme: 'lagoon' })) };
+  return s;
 }

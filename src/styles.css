@@ -52,7 +52,7 @@ input { user-select: text; -webkit-user-select: text; }
 /* Tank tabs */
 .tabs { display: flex; gap: 6px; }
 .tab {
-  display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 32px; padding: 0 9px;
+  display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 44px; padding: 0 9px;
   border-radius: 999px; background: rgba(255, 255, 255, 0.7); color: var(--muted);
   font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(90, 70, 150, 0.1);
 }
@@ -61,14 +61,15 @@ input { user-select: text; -webkit-user-select: text; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #ff5f87; box-shadow: 0 0 0 1.5px #fff; }
 
 /* Tank */
+/* Theme colors come from CSS variables set inline (see art/Motif.tsx themeVars). */
+.tank, .tprev { background: linear-gradient(var(--w1), var(--w2) 45%, var(--w3)); }
 .tank {
-  position: relative; flex: 1; overflow: hidden; border-radius: 24px; touch-action: none;
-  background: linear-gradient(#c9f5f1, #8fd5ee 45%, #5ea6dd);
-  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.55), var(--shadow);
+  position: relative; isolation: isolate; flex: 1; overflow: hidden; border-radius: 24px; touch-action: none;
+  box-shadow: inset 0 0 0 4px var(--frame), var(--shadow);
 }
 .tank.feed { cursor: crosshair; }
 .tank.clean { cursor: grab; }
-.ray, .bubble, .sand, .layer, .algae, .sponge { position: absolute; pointer-events: none; }
+.ray, .bubble, .sand, .layer, .algae, .sponge, .motif { position: absolute; pointer-events: none; }
 .ray {
   top: -10%; width: 16%; height: 85%; transform-origin: top;
   background: linear-gradient(rgba(255, 255, 255, 0.5), transparent);
@@ -88,15 +89,29 @@ input { user-select: text; -webkit-user-select: text; }
 .sand {
   left: -5%; right: -5%; bottom: 0; height: 44px; border-radius: 50% 50% 0 0 / 18px 18px 0 0;
   background:
-    radial-gradient(circle at 20% 60%, #e9c98f 0 4px, transparent 5px),
-    radial-gradient(circle at 63% 45%, #f3dcae 0 5px, transparent 6px),
-    radial-gradient(circle at 82% 70%, #e2bd85 0 3px, transparent 4px),
-    linear-gradient(#fbe9c0, #efd29a);
+    radial-gradient(circle at 20% 60%, rgba(120, 80, 30, 0.1) 0 4px, transparent 5px),
+    radial-gradient(circle at 63% 45%, rgba(255, 255, 255, 0.4) 0 5px, transparent 6px),
+    radial-gradient(circle at 82% 70%, rgba(120, 80, 30, 0.12) 0 3px, transparent 4px),
+    linear-gradient(var(--s1), var(--s2));
 }
+/* Theme motifs: soft background layer */
+.motif { left: 0; width: 100%; }
+.motif.top { top: 0; }
+.motif.bottom { bottom: 26px; }
+.motif.stars, .motif.candy { inset: 0; }
+.motif i { position: absolute; border-radius: 50%; }
+.stars i { width: 3px; height: 3px; background: #fff; box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6); animation: blink 2.6s ease-in-out infinite alternate; }
+.stars i:nth-child(3n) { width: 4px; height: 4px; }
+@keyframes blink { from { opacity: 0.15; } }
+.candy i { width: 12px; height: 12px; opacity: 0.6; animation: bob 5s ease-in-out infinite alternate; }
+.candy i:nth-child(3n) { width: 18px; height: 18px; }
+.candy i:nth-child(3n + 1) { width: 8px; height: 8px; }
+@keyframes bob { to { transform: translateY(-14px); } }
 .fish {
-  position: absolute; left: 0; top: 0; width: 96px; height: 64px; margin: -32px 0 0 -48px;
-  transform: translate(-999px, 0); will-change: transform; cursor: pointer;
+  position: absolute; left: 0; top: 0; z-index: 1; width: 96px; height: 64px; margin: -32px 0 0 -48px;
+  transform: translate(-999px, 0); will-change: transform; cursor: pointer; transition: opacity 0.2s;
 }
+.tank.decorate .fish { opacity: 0.4; pointer-events: none; }
 .fish svg, .sprite svg { display: block; }
 .sprite { position: relative; isolation: isolate; }
 /* Rarity: epic = lilac aura, legendary = gold aura + twinkling sparkles (wrapper only, so the sick filter on the svg still applies). */
@@ -123,7 +138,38 @@ input { user-select: text; -webkit-user-select: text; }
   padding: 10px 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.85);
   box-shadow: var(--shadow); font-weight: 500; white-space: nowrap;
 }
+/* Decor: back items sit behind fish (z auto), front items above (z 2). */
+.decor { position: absolute; bottom: 16px; transform: translateX(-50%); pointer-events: none; touch-action: none; }
+.decor.front { bottom: 6px; z-index: 2; }
+.decor.flip { transform: translateX(-50%) scaleX(-1); }
+.decor svg { display: block; }
+.tank.decorate .decor { pointer-events: auto; cursor: grab; }
+.decor.sel { border-radius: 14px; background: rgba(255, 255, 255, 0.25); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 18px 6px rgba(255, 255, 255, 0.5); }
+.sway svg { transform-origin: 50% 100%; animation: dsway 3.5s ease-in-out infinite alternate; }
+@keyframes dsway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+.glow svg { animation: glow 2.4s ease-in-out infinite alternate; }
+@keyframes glow { from { filter: drop-shadow(0 0 2px var(--c)); } to { filter: drop-shadow(0 0 12px var(--c)); } }
+.decor i {
+  position: absolute; left: 50%; top: 4px; width: 7px; height: 7px; border-radius: 50%; opacity: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.3); animation: dbub 2.7s ease-in infinite;
+}
+.decor i:nth-of-type(2) { width: 5px; height: 5px; margin-left: 5px; animation-delay: -0.9s; }
+.decor i:nth-of-type(3) { margin-left: -7px; animation-delay: -1.8s; }
+@keyframes dbub { 15% { opacity: 1; } 100% { transform: translate(4px, -70px); opacity: 0; } }
+.dtop { position: absolute; top: 10px; left: 50%; z-index: 4; display: flex; gap: 8px; transform: translateX(-50%); }
+.hint.dhint { top: 64px; bottom: auto; z-index: 4; margin: 0; }
+.dtools {
+  position: absolute; z-index: 4; left: clamp(140px, var(--x), calc(100% - 140px)); transform: translateX(-50%);
+  display: flex; gap: 6px; padding: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.55); box-shadow: var(--shadow);
+}
+:is(.dtop, .dtools) button {
+  display: flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94); box-shadow: 0 2px 8px rgba(90, 70, 150, 0.15); font-size: 15px; font-weight: 600; white-space: nowrap;
+}
+.dtools button { padding: 0 11px; font-size: 14px; }
+.dtools .rm { background: #fff3d6; }
 .layer { inset: 0; }
+.layer, .algae, .sponge { z-index: 3; }
 .pellet {
   position: absolute; left: -4px; top: -4px; width: 9px; height: 9px; border-radius: 50%;
   background: #c98a55; box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.15);
@@ -164,6 +210,7 @@ input { user-select: text; -webkit-user-select: text; }
 .btn:active { transform: translateY(2px); }
 .btn.active { background: var(--pink); box-shadow: 0 4px 0 var(--pink-deep), inset 0 0 0 3px #fff; }
 .btn:disabled { opacity: 0.5; }
+.actions .btn { flex-direction: column; gap: 2px; min-height: 60px; padding: 0 4px; font-size: 14px; }
 
 /* Bottom sheets */
 .backdrop {
@@ -185,9 +232,12 @@ input { user-select: text; -webkit-user-select: text; }
 .sub { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; color: var(--muted); }
 .seg {
   position: sticky; top: -22px; z-index: 2; display: flex; gap: 6px; /* -22px = sheet padding-top, so it sticks flush */
-  margin: 8px -16px 0; padding: 8px 16px; background: var(--card);
+  margin: 8px -16px 0; padding: 8px 16px; background: var(--card); overflow-x: auto; scrollbar-width: none;
 }
-.seg button { flex: 1; min-height: 40px; border-radius: 999px; background: var(--soft); color: var(--muted); font-weight: 600; }
+.seg button {
+  flex: 1 0 auto; min-height: 44px; padding: 0 10px; border-radius: 999px;
+  background: var(--soft); color: var(--muted); font-size: 15px; font-weight: 600;
+}
 .seg .on { background: var(--pink); color: var(--ink); }
 .section { margin: 16px 0 8px; font-size: 15px; font-weight: 600; color: var(--muted); text-transform: capitalize; }
 .list { display: grid; gap: 10px; margin-top: 12px; }
@@ -201,6 +251,10 @@ input { user-select: text; -webkit-user-select: text; }
 .card small { color: var(--muted); font-size: 13px; }
 .card .reason { color: #d0668a; }
 .card.locked .sprite { filter: grayscale(1); opacity: 0.45; }
+.dprev { display: flex; align-items: flex-end; justify-content: center; height: 88px; }
+.tprev { width: 100%; height: 84px; overflow: hidden; border-radius: 14px; box-shadow: inset 0 0 0 3px var(--frame); }
+.tprev .sand { height: 18px; border-radius: 50% 50% 0 0 / 8px 8px 0 0; }
+.tprev .motif.bottom { bottom: 10px; }
 .lock {
   position: absolute; top: 8px; left: 8px; z-index: 1; padding: 2px 9px; border-radius: 999px;
   background: #ffe7a3; font-size: 13px; font-weight: 600;

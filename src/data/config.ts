@@ -18,10 +18,11 @@ export const TANK_COSTS: (Cost & { unlockLevel: number })[] = [ // next tank, by
   { pearls: 15, unlockLevel: 10 },
   { pearls: 30, unlockLevel: 15 },
 ];
+export const MAX_DECOR = 12; // per tank
 export const CARE_BELOW = 30; // tank tab shows a dot when cleanliness or any fish's fullness is below this
 
 // Simulation (per minute)
-export const HUNGER_DECAY = 100 / 240; // full -> empty in 4 h
+export const HUNGER_DECAY = 100 / 480; // full -> empty in 8 h
 export const HEALTH_LOSS = 100 / 120;
 export const HEALTH_GAIN = 100 / 240;
 export const SICK_BELOW = 30;
@@ -42,5 +43,6 @@ export const TICK_MS = 10_000;
 export const CLEAN_DRAG_PX = 40;
 export const PELLET_LIFE_MS = 10_000;
 export const PELLET_SINK_PX = 16; // per second
-export const SELL_CONFIRM_MS = 3000;
+export const SELL_CONFIRM_MS = 3000; // also the decor Remove confirm
+export const DECOR_DRAG_PX = 6; // finger travel before a tap becomes a drag
 export const TOAST_MS = 3000;

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as sim from './sim';
-import type { GameState, UpgradeId } from './types';
+import type { DecorPatch, GameState, UpgradeId } from './types';
 
 interface Actions {
   catchUp: (now: number) => void;
@@ -14,6 +14,11 @@ interface Actions {
   upgrade: (id: UpgradeId) => void;
   upgradeCapacity: (tankId: string) => void;
   buyTank: () => void;
+  buyDecor: (tankId: string, itemId: string, x: number) => void;
+  editDecor: (tankId: string, placedId: string, patch: DecorPatch) => void;
+  removeDecor: (tankId: string, placedId: string) => void;
+  buyTheme: (themeId: string) => void;
+  setTheme: (tankId: string, themeId: string) => void;
 }
 
 // Thin wrapper: every action delegates to a pure function in sim.ts.
@@ -31,10 +36,15 @@ export const useGame = create<GameState & Actions>()(
       upgrade: (id) => set((s) => sim.buyUpgrade(s, id)),
       upgradeCapacity: (tankId) => set((s) => sim.upgradeCapacity(s, tankId)),
       buyTank: () => set((s) => sim.buyTank(s, sim.newId())),
+      buyDecor: (tankId, itemId, x) => set((s) => sim.buyDecor(s, tankId, itemId, sim.newId(), x)),
+      editDecor: (tankId, id, patch) => set((s) => sim.editDecor(s, tankId, id, patch)),
+      removeDecor: (tankId, id) => set((s) => sim.removeDecor(s, tankId, id)),
+      buyTheme: (id) => set((s) => sim.buyTheme(s, id)),
+      setTheme: (tankId, id) => set((s) => sim.setTheme(s, tankId, id)),
     }),
     {
       name: 'pocket-fishies',
-      version: 2,
+      version: 3,
       // Only state is persisted; the default merge keeps the actions.
       migrate: (old, version) => sim.migrateSave(old, version) as GameState & Actions,
     },

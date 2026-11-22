@@ -1,5 +1,6 @@
 import { xpNeeded } from '../game/sim';
 import { useGame } from '../game/store';
+import type { Cost } from '../game/types';
 
 export const Coin = ({ size = 22 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24">
@@ -16,6 +17,9 @@ export const Pearl = ({ size = 22 }: { size?: number }) => (
     <circle cx="9" cy="8.5" r="2.8" fill="#fff" />
   </svg>
 );
+
+export const Price = ({ cost, size = 18 }: { cost: Cost; size?: number }) =>
+  cost.pearls ? <><Pearl size={size} />{cost.pearls}</> : <><Coin size={size} />{cost.gold}</>;
 
 export default function Hud() {
   const gold = useGame((s) => s.gold);

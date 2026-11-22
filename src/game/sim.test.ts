@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DIRT_PER_MIN, MAX_OFFLINE_MIN } from '../data/config';
 import { speciesById } from '../data/fish';
 import * as sim from './sim';
-import type { Fish, GameState, Tank, UpgradeId } from './types';
+import type { Fish, GameState, Placed, Tank, UpgradeId } from './types';
 
 const T0 = 1_700_000_000_000;
 const MIN = 60_000;
@@ -18,13 +18,20 @@ const after = (s: GameState, minutes: number) => first(sim.tick(s, minutes));
 const withUp = (s: GameState, id: UpgradeId, level: number): GameState => ({ ...s, upgrades: { ...s.upgrades, [id]: level } });
 
 describe('tick', () => {
-  it('hunger decays to 0 in 240 minutes', () => {
-    expect(after(setup(), 120).hunger).toBeCloseTo(50);
-    expect(after(setup(), 240).hunger).toBeCloseTo(0, 6);
+  it('hunger decays to 0 in 480 minutes', () => {
+    expect(after(setup(), 240).hunger).toBeCloseTo(50);
+    expect(after(setup(), 480).hunger).toBeCloseTo(0, 6);
+  });
+
+  it('fed to 100 at night: after 8 h just empty, still healthy, grew all night', () => {
+    const f = after(setup({ speciesId: 'aurora' }), 480);
+    expect(f.hunger).toBeCloseTo(0, 6);
+    expect(f.health).toBe(100);
+    expect(f.growth).toBeCloseTo(480 / 1440);
   });
 
   it('growth stops when hunger is 0', () => {
-    const s = sim.tick(setup({ hunger: 10 }), 30);
+    const s = sim.tick(setup({ hunger: 5 }), 30);
     const g = first(s).growth;
     expect(first(s).hunger).toBe(0);
     expect(g).toBeGreaterThan(0);
@@ -223,7 +230,7 @@ describe('tanks', () => {
     const s = { ...sim.createState(T0), level: 3, gold: 1000 };
     const two = sim.buyTank(s, 't2');
     expect(two.gold).toBe(0);
-    expect(two.tanks[1]).toEqual({ id: 't2', capacity: 6, cleanliness: 100, fish: [] });
+    expect(two.tanks[1]).toEqual({ id: 't2', capacity: 6, cleanliness: 100, fish: [], decor: [], theme: 'lagoon' });
     expect(sim.canBuyTank({ ...s, level: 2 })).toBe('Locked until Lv 3');
     expect(sim.canBuyTank({ ...s, gold: 999 })).toBe('Not enough gold');
 
@@ -247,13 +254,89 @@ describe('tanks', () => {
 });
 
 describe('migrateSave', () => {
-  it('v1 -> v2 adds upgrades and re-levels on the new curve', () => {
-    const v1 = { gold: 300, pearls: 6, xp: 150, level: 2, lastTick: T0, tanks: [] };
-    expect(sim.migrateSave(v1, 1)).toMatchObject({
-      level: 3, xp: 50, gold: 450, pearls: 7, upgrades: { food: 0, tool: 0, filter: 0, heater: 0 },
+  const oldTank = (id: string) => ({ id, capacity: 6, cleanliness: 70, fish: [{ ...first(setup()), id: `${id}-f` }] });
+  it('v1 -> v3 adds upgrades, re-levels on the new curve, and adds decor and themes', () => {
+    const v1 = { gold: 300, pearls: 6, xp: 150, level: 2, lastTick: T0, tanks: [oldTank('main')] };
+    expect(sim.migrateSave(v1, 1)).toEqual({
+      ...v1, level: 3, xp: 50, gold: 450, pearls: 7, upgrades: { food: 0, tool: 0, filter: 0, heater: 0 },
+      themes: ['lagoon'], tanks: [{ ...oldTank('main'), decor: [], theme: 'lagoon' }],
     });
-    const v2 = sim.createState(T0);
-    expect(sim.migrateSave(v2, 2)).toBe(v2);
+    const v3 = sim.createState(T0);
+    expect(sim.migrateSave(v3, 3)).toBe(v3);
+  });
+
+  it('v2 -> v3: both tanks get decor [] and theme lagoon; themes [lagoon]; nothing else changes', () => {
+    const upgrades = { food: 1, tool: 2, filter: 0, heater: 1 };
+    const v2 = { gold: 1234, pearls: 9, xp: 40, level: 7, lastTick: T0, upgrades, tanks: [oldTank('main'), oldTank('t2')] };
+    expect(sim.migrateSave(v2, 2)).toEqual({
+      ...v2, themes: ['lagoon'], tanks: [{ ...oldTank('main'), decor: [], theme: 'lagoon' }, { ...oldTank('t2'), decor: [], theme: 'lagoon' }],
+    });
+  });
+});
+
+describe('decor', () => {
+  const placed = (id: string, itemId: string): Placed => ({ id, itemId, x: 0.5, front: false, flip: false });
+  const withDecor = (o: Partial<GameState>, decor: Placed[]): GameState => {
+    const s = { ...sim.createState(T0), ...o };
+    return { ...s, tanks: [{ ...s.tanks[0], decor }] };
+  };
+  const decor = (s: GameState) => s.tanks[0].decor;
+
+  it('Lv 5, 500 gold, 11 decor: buys a Treasure Chest (gold 100, 12 decor); again -> tank decor is full', () => {
+    const s = withDecor({ level: 5, gold: 500 }, Array.from({ length: 11 }, (_, i) => placed(`d${i}`, 'pebbles')));
+    const b = sim.buyDecor(s, 'main', 'chest', 'c1', 0.4);
+    expect(b.gold).toBe(100);
+    expect(decor(b)).toHaveLength(12);
+    expect(decor(b)[11]).toEqual({ id: 'c1', itemId: 'chest', x: 0.4, front: false, flip: false });
+    expect(sim.canBuyDecor(b, 'main', 'chest')).toBe('Tank decor is full');
+    expect(sim.buyDecor(b, 'main', 'chest', 'c2', 0.4)).toBe(b);
+    expect(sim.canBuyDecor({ ...s, level: 4 }, 'main', 'chest')).toBe('Locked until Lv 5');
+    expect(sim.canBuyDecor({ ...s, gold: 399 }, 'main', 'chest')).toBe('Not enough gold');
+    expect(decor(sim.buyDecor(s, 'main', 'chest', 'c1', 1.3))[11].x).toBe(0.95);
+  });
+
+  it('Lv 12, 10 pearls: buys a Crystal Castle with pearls, gold unchanged', () => {
+    const s = withDecor({ level: 12, pearls: 10, gold: 50 }, []);
+    const b = sim.buyDecor(s, 'main', 'castle_crystal', 'k1', 0.5);
+    expect(b).toMatchObject({ pearls: 0, gold: 50 });
+    expect(decor(b).map((d) => d.itemId)).toEqual(['castle_crystal']);
+    expect(sim.canBuyDecor({ ...s, pearls: 9, gold: 99999 }, 'main', 'castle_crystal')).toBe('Not enough pearls');
+  });
+
+  it('editDecor clamps x to 0.05..0.95; a flip patch only changes flip', () => {
+    const s = withDecor({}, [placed('d1', 'rock')]);
+    expect(decor(sim.editDecor(s, 'main', 'd1', { x: 1.3 }))[0].x).toBe(0.95);
+    expect(decor(sim.editDecor(s, 'main', 'd1', { x: -0.2 }))[0].x).toBe(0.05);
+    expect(decor(sim.editDecor(s, 'main', 'd1', { flip: true }))[0]).toEqual({ ...placed('d1', 'rock'), flip: true });
+  });
+
+  it('removeDecor refunds half, rounded down: Treasure Chest +200 gold, Golden Chest +7 pearls', () => {
+    const s = withDecor({ gold: 0, pearls: 0 }, [placed('c', 'chest'), placed('g', 'chest_gold')]);
+    const a = sim.removeDecor(s, 'main', 'c');
+    expect(a).toMatchObject({ gold: 200, pearls: 0 });
+    expect(decor(a).map((d) => d.id)).toEqual(['g']);
+    expect(sim.removeDecor(s, 'main', 'g')).toMatchObject({ gold: 0, pearls: 7 });
+    expect(sim.removeDecor(s, 'main', 'nope')).toBe(s);
+  });
+});
+
+describe('themes', () => {
+  it('Lv 4, 1000 gold: buys Coral Reef -> gold 200, themes [lagoon, reef]', () => {
+    const s = { ...sim.createState(T0), level: 4, gold: 1000 };
+    const b = sim.buyTheme(s, 'reef');
+    expect(b.gold).toBe(200);
+    expect(b.themes).toEqual(['lagoon', 'reef']);
+    expect(sim.canBuyTheme(b, 'reef')).toBe('Owned');
+    expect(sim.canBuyTheme(s, 'lagoon')).toBe('Owned');
+    expect(sim.canBuyTheme({ ...s, level: 3 }, 'reef')).toBe('Locked until Lv 4');
+    expect(sim.canBuyTheme({ ...s, gold: 799 }, 'reef')).toBe('Not enough gold');
+    expect(sim.canBuyTheme({ ...s, level: 9, pearls: 9 }, 'candy')).toBe('Not enough pearls');
+  });
+
+  it('setTheme applies owned themes only', () => {
+    const s = { ...sim.createState(T0), themes: ['lagoon', 'reef'] };
+    expect(sim.setTheme(s, 'main', 'reef').tanks[0].theme).toBe('reef');
+    expect(sim.setTheme(s, 'main', 'night')).toBe(s);
   });
 });
 
@@ -268,7 +351,8 @@ describe('rename & favorite', () => {
 });
 
 it('never mutates the input state', () => {
-  const s = { ...setup({ hunger: 50, growth: 1 }, 50), level: 20, gold: 99999, pearls: 99 };
+  const base = { ...setup({ hunger: 50, growth: 1 }, 50), level: 20, gold: 99999, pearls: 99 };
+  const s = { ...base, tanks: [{ ...base.tanks[0], decor: [{ id: 'd1', itemId: 'chest', x: 0.5, front: false, flip: false }] }] };
   const copy = structuredClone(s);
   sim.tick(s, 30);
   sim.catchUp(s, T0 + 30 * MIN);
@@ -284,5 +368,11 @@ it('never mutates the input state', () => {
   sim.upgradeCapacity(s, 'main');
   sim.buyTank(s, 't2');
   sim.migrateSave(s, 1);
+  sim.migrateSave(s, 2);
+  sim.buyDecor(s, 'main', 'castle_crystal', 'd2', 0.3);
+  sim.editDecor(s, 'main', 'd1', { x: 2, flip: true, front: true });
+  sim.removeDecor(s, 'main', 'd1');
+  sim.buyTheme(s, 'reef');
+  sim.setTheme({ ...s, themes: ['lagoon', 'reef'] }, 'main', 'reef');
   expect(s).toEqual(copy);
 });
