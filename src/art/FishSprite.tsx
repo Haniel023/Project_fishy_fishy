@@ -16,6 +16,8 @@ const BODIES: Record<Look['body'], Body> = {
   long: { d: 'M102 40C102 50 88 55 66 55S26 49 26 40S44 25 66 25S102 30 102 40Z', cy: 40, tailX: 28, eye: [88, 36, 5.5], mouth: [97, 44], fin: [62, 26] },
   tall: { d: 'M90 40C90 60 78 70 64 70S40 58 40 40S50 10 64 10S90 20 90 40Z', cy: 40, tailX: 42, eye: [76, 31, 6.5], mouth: [85, 46], fin: [60, 12] },
   flat: { d: 'M100 46C100 56 86 58 64 58S30 54 30 46S46 24 66 24S100 34 100 46Z', cy: 46, tailX: 32, eye: [84, 38, 6], mouth: [95, 50], fin: [64, 25] },
+  angel: { d: 'M93 40C93 50 74 72 62 72C51 72 40 52 40 40S51 8 62 8S93 30 93 40Z', cy: 40, tailX: 42, eye: [78, 33, 6.5], mouth: [88, 46], fin: [58, 10] },
+  puff: { d: 'M94 40C94 58 80 68 63 68S32 58 32 40S46 12 63 12S94 22 94 40Z', cy: 40, tailX: 34, eye: [79, 32, 7.5], mouth: [90, 46], fin: [58, 14] },
 };
 
 // Tails attach at (0,0) and extend left.
@@ -24,14 +26,18 @@ const TAILS: Record<Look['tail'], string> = {
   fork: 'M6 0C-2-8-12-20-22-21C-17-10-15-4-12 0C-15 4-17 10-22 21C-12 20-2 8 6 0Z',
   round: 'M6 0C0-10-8-15-17-13C-26-9-26 9-17 13C-8 15 0 10 6 0Z',
   veil: 'M6 0C-6-10-20-26-32-22C-26-12-30-4-24 2C-30 10-24 20-34 30C-18 30-6 10 6 0Z',
+  sword: 'M6 0C0-8-10-15-18-13C-20-6-18-1-16 3L-40 13C-28 16-8 11 6 0Z',
+  flowy: 'M6 0C-6-14-18-26-28-24Q-38-18-32-10Q-40-2-34 6Q-42 16-34 24Q-26 34-14 28C-6 22 0 10 6 0Z',
 };
 const DORSAL = 'M-11 6C-8-6 2-11 12-7C9-2 9 2 9 6Z';
 const SPOTS = [[-14, -8], [-24, 1], [-35, -10], [-45, -1], [-19, 9], [-37, 9], [-54, -8], [-58, 5], [-28, -16]];
+// 4 offset rows of 7 small arcs, starting just behind the eye.
+const SCALES = Array.from({ length: 28 }, (_, i) => [-16 - (i % 7) * 8 - (Math.floor(i / 7) % 2) * 4, -12 + Math.floor(i / 7) * 8]);
 const OUTLINE = 'rgba(60,40,90,.35)';
 const INK = '#3a3352';
 const line = { stroke: OUTLINE, strokeWidth: 2, strokeLinejoin: 'round' as const };
 
-function Pattern({ look, b }: { look: Look; b: Body }) {
+function Pattern({ look, b, id }: { look: Look; b: Body; id: string }) {
   const ex = b.eye[0];
   switch (look.pattern) {
     case 'stripes':
@@ -40,6 +46,18 @@ function Pattern({ look, b }: { look: Look; b: Body }) {
       return <>{[12, 32].map((dx) => <rect key={dx} x={ex - dx - 5} y="0" width="9" height="80" fill={look.accent} stroke={OUTLINE} strokeWidth="1.5" />)}</>;
     case 'spots':
       return <>{SPOTS.map(([dx, dy], i) => <circle key={i} cx={ex + dx} cy={b.cy + dy} r="2.6" fill={look.accent} />)}</>;
+    case 'gradient': // accent over the back and rear, fading toward the face and belly
+      return (
+        <>
+          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={b.tailX} y1={b.cy - 24} x2={ex} y2={b.cy + 8}>
+            <stop offset=".15" stopColor={look.accent} />
+            <stop offset="1" stopColor={look.accent} stopOpacity="0" />
+          </linearGradient>
+          <rect width="120" height="80" fill={`url(#${id})`} />
+        </>
+      );
+    case 'scales':
+      return <path d={SCALES.map(([dx, dy]) => `M${ex + dx - 4} ${b.cy + dy}q4 5 8 0`).join('')} fill="none" stroke={look.accent} strokeWidth="1.8" strokeLinecap="round" />;
     default:
       return <ellipse cx={ex - 20} cy={b.cy + 16} rx="34" ry="11" fill={look.accent} />; // belly
   }
@@ -58,7 +76,7 @@ export default function FishSprite({ look, sick, size = 96 }: { look: Look; sick
       <path d={DORSAL} transform={`translate(${b.fin[0]} ${b.fin[1]})`} fill={look.fin} {...line} />
       <path d={b.d} fill={look.main} />
       <g clipPath={`url(#${clip})`}>
-        <Pattern look={look} b={b} />
+        <Pattern look={look} b={b} id={`${clip}g`} />
         <ellipse cx={ex - 22} cy={b.cy - 13} rx="16" ry="4.5" fill="#fff" opacity=".35" />
       </g>
       <path d={b.d} fill="none" {...line} />

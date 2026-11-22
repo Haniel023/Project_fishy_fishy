@@ -15,8 +15,10 @@ const BUBBLES = Array.from({ length: 9 }, (_, i) => ({
 }));
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
-export default function Tank({ mode, onSelect }: { mode: Mode; onSelect: (id: string) => void }) {
-  const tank = useGame((s) => s.tanks[0]);
+interface Props { tankId: string; mode: Mode; onSelect: (id: string) => void }
+
+export default function Tank({ tankId, mode, onSelect }: Props) {
+  const tank = useGame((s) => s.tanks.find((t) => t.id === tankId)!);
   const clean = useGame((s) => s.clean);
   const box = useRef<HTMLDivElement>(null);
   const layer = useRef<HTMLDivElement>(null);
@@ -38,7 +40,7 @@ export default function Tank({ mode, onSelect }: { mode: Mode; onSelect: (id: st
       const floor = box.current!.clientHeight - SAND;
       const spot = (): [number, number] => [rand(50, w - 50), rand(40, floor - 30)];
       const { tanks, feed } = useGame.getState();
-      const fish = tanks[0].fish;
+      const fish = tanks.find((t) => t.id === tankId)?.fish ?? [];
       const ms = motions.current;
 
       pellets.current = pellets.current.filter((p) => {
@@ -108,7 +110,7 @@ export default function Tank({ mode, onSelect }: { mode: Mode; onSelect: (id: st
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, []);
+  }, [tankId]);
 
   const pos = (e: PointerEvent) => {
     const r = box.current!.getBoundingClientRect();
@@ -145,7 +147,7 @@ export default function Tank({ mode, onSelect }: { mode: Mode; onSelect: (id: st
     dr.dist += Math.hypot(x - dr.x, y - dr.y);
     [dr.x, dr.y] = [x, y];
     showSponge(x, y);
-    for (; dr.dist >= C.CLEAN_DRAG_PX; dr.dist -= C.CLEAN_DRAG_PX) clean(tank.id, C.CLEAN_AMOUNT);
+    for (; dr.dist >= C.CLEAN_DRAG_PX; dr.dist -= C.CLEAN_DRAG_PX) clean(tank.id);
   };
   const onUp = () => {
     drag.current = null;
@@ -160,12 +162,16 @@ export default function Tank({ mode, onSelect }: { mode: Mode; onSelect: (id: st
           style={{ left: b.left, width: b.size, height: b.size, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s` }} />
       ))}
       <div className="sand" />
-      {tank.fish.map((f) => (
-        <div key={f.id} data-fish={f.id} className="fish"
-          ref={(el) => { if (el) els.current.set(f.id, el); else els.current.delete(f.id); }}>
-          <FishSprite look={speciesById(f.speciesId).look} sick={isSick(f)} />
-        </div>
-      ))}
+      {tank.fish.length === 0 && <div className="empty">Tap Shop to get your first fish</div>}
+      {tank.fish.map((f) => {
+        const sp = speciesById(f.speciesId);
+        return (
+          <div key={f.id} data-fish={f.id} className={`fish ${sp.rarity}`}
+            ref={(el) => { if (el) els.current.set(f.id, el); else els.current.delete(f.id); }}>
+            <FishSprite look={sp.look} sick={isSick(f)} />
+          </div>
+        );
+      })}
       <div ref={layer} className="layer" />
       <div className="algae" style={{ opacity: (1 - tank.cleanliness / 100) * 0.8 }} />
       <div ref={sponge} className="sponge" />

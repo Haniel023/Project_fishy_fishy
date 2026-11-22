@@ -49,6 +49,17 @@ input { user-select: text; -webkit-user-select: text; }
 .track { flex: 1; height: 10px; border-radius: 999px; background: #efe8fb; overflow: hidden; }
 .track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffb3c7, #c6a6ff); transition: width 0.4s; }
 
+/* Tank tabs */
+.tabs { display: flex; gap: 6px; }
+.tab {
+  display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 32px; padding: 0 9px;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.7); color: var(--muted);
+  font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(90, 70, 150, 0.1);
+}
+.tab.on { background: var(--pink); color: var(--ink); }
+.tab.add { padding: 0 13px; font-size: 18px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #ff5f87; box-shadow: 0 0 0 1.5px #fff; }
+
 /* Tank */
 .tank {
   position: relative; flex: 1; overflow: hidden; border-radius: 24px; touch-action: none;
@@ -86,7 +97,32 @@ input { user-select: text; -webkit-user-select: text; }
   position: absolute; left: 0; top: 0; width: 96px; height: 64px; margin: -32px 0 0 -48px;
   transform: translate(-999px, 0); will-change: transform; cursor: pointer;
 }
-.fish svg { display: block; }
+.fish svg, .sprite svg { display: block; }
+.sprite { position: relative; isolation: isolate; }
+/* Rarity: epic = lilac aura, legendary = gold aura + twinkling sparkles (wrapper only, so the sick filter on the svg still applies). */
+:is(.fish, .sprite):is(.epic, .legendary)::before {
+  content: ''; position: absolute; inset: 0 6%; z-index: -1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(206, 172, 255, 0.85), rgba(206, 172, 255, 0.35) 60%, transparent);
+}
+:is(.fish, .sprite).legendary::before {
+  background: radial-gradient(closest-side, rgba(255, 222, 125, 0.95), rgba(255, 205, 100, 0.4) 60%, transparent);
+}
+:is(.fish, .sprite).legendary::after {
+  --star: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><path d='M5 0Q5.6 4.4 10 5Q5.6 5.6 5 10Q4.4 5.6 0 5Q4.4 4.4 5 0Z' fill='%23fffbe6' stroke='%23ffc23d' stroke-width='.6'/></svg>");
+  content: ''; position: absolute; inset: -4%; pointer-events: none;
+  background: var(--star) 14% 8% / 14px no-repeat, var(--star) 90% 20% / 10px no-repeat, var(--star) 60% 98% / 12px no-repeat;
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { background-size: 14px 14px, 2px 2px, 9px 9px; }
+  33% { background-size: 4px 4px, 13px 13px, 3px 3px; }
+  66% { background-size: 9px 9px, 5px 5px, 14px 14px; }
+}
+.empty {
+  position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+  padding: 10px 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow); font-weight: 500; white-space: nowrap;
+}
 .layer { inset: 0; }
 .pellet {
   position: absolute; left: -4px; top: -4px; width: 9px; height: 9px; border-radius: 50%;
@@ -147,6 +183,14 @@ input { user-select: text; -webkit-user-select: text; }
   border-radius: 50%; background: var(--soft); font-size: 26px; line-height: 1;
 }
 .sub { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; color: var(--muted); }
+.seg {
+  position: sticky; top: -22px; z-index: 2; display: flex; gap: 6px; /* -22px = sheet padding-top, so it sticks flush */
+  margin: 8px -16px 0; padding: 8px 16px; background: var(--card);
+}
+.seg button { flex: 1; min-height: 40px; border-radius: 999px; background: var(--soft); color: var(--muted); font-weight: 600; }
+.seg .on { background: var(--pink); color: var(--ink); }
+.section { margin: 16px 0 8px; font-size: 15px; font-weight: 600; color: var(--muted); text-transform: capitalize; }
+.list { display: grid; gap: 10px; margin-top: 12px; }
 
 /* Shop */
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -156,9 +200,9 @@ input { user-select: text; -webkit-user-select: text; }
 }
 .card small { color: var(--muted); font-size: 13px; }
 .card .reason { color: #d0668a; }
-.card.locked > svg { filter: grayscale(1); opacity: 0.45; }
+.card.locked .sprite { filter: grayscale(1); opacity: 0.45; }
 .lock {
-  position: absolute; top: 8px; left: 8px; padding: 2px 9px; border-radius: 999px;
+  position: absolute; top: 8px; left: 8px; z-index: 1; padding: 2px 9px; border-radius: 999px;
   background: #ffe7a3; font-size: 13px; font-weight: 600;
 }
 .buy {
@@ -184,7 +228,7 @@ input { user-select: text; -webkit-user-select: text; }
 .stat { margin: 10px 0; }
 .stat-top { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
 .stat .track { height: 12px; }
-.tag { margin-left: 6px; padding: 0 8px; border-radius: 999px; background: #cfe8b0; color: #557a2c; font-size: 12px; }
+.tag { margin-left: 6px; padding: 0 8px; border-radius: 999px; background: #ffe2a8; color: #9a6a10; font-size: 12px; }
 .facts { display: flex; justify-content: space-between; margin: 12px 0; color: var(--muted); }
 .facts span { display: flex; align-items: center; gap: 4px; }
 .row { display: flex; gap: 10px; }

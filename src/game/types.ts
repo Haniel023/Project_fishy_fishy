@@ -1,19 +1,20 @@
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface Look {
-  body: 'round' | 'long' | 'tall' | 'flat';
-  tail: 'fan' | 'fork' | 'round' | 'veil';
+  body: 'round' | 'long' | 'tall' | 'flat' | 'angel' | 'puff';
+  tail: 'fan' | 'fork' | 'round' | 'veil' | 'sword' | 'flowy';
   main: string;
   accent: string;
   fin: string;
-  pattern: 'none' | 'stripes' | 'spots' | 'band';
+  pattern: 'none' | 'stripes' | 'spots' | 'band' | 'gradient' | 'scales';
 }
 
 export interface Species {
   id: string;
   name: string;
   rarity: Rarity;
-  price: number;
+  price: number; // gold base for selling (and buying, unless pearls is set)
+  pearls?: number; // if set, buying costs this many pearls instead of gold
   growMinutes: number;
   unlockLevel: number;
   look: Look;
@@ -37,12 +38,16 @@ export interface Tank {
   fish: Fish[];
 }
 
+export type UpgradeId = 'food' | 'tool' | 'filter' | 'heater';
+export interface Cost { gold?: number; pearls?: number }
+
 export interface GameState {
   gold: number;
   pearls: number;
   xp: number;
   level: number;
   tanks: Tank[];
+  upgrades: Record<UpgradeId, number>; // current level index per upgrade (player-wide)
   lastTick: number; // ms
 }
 

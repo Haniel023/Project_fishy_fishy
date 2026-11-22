@@ -9,8 +9,8 @@ export const Coin = ({ size = 22 }: { size?: number }) => (
   </svg>
 );
 
-const Pearl = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24">
+export const Pearl = ({ size = 22 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
     <circle cx="12" cy="12" r="9.5" fill="#f6efff" stroke="#cdb9ef" strokeWidth="2" />
     <circle cx="15" cy="15.5" r="3.5" fill="#ead8ff" />
     <circle cx="9" cy="8.5" r="2.8" fill="#fff" />

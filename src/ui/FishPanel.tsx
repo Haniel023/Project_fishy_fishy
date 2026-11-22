@@ -78,7 +78,7 @@ export default function FishPanel({ fishId, onClose }: { fishId: string; onClose
             {fish.favorite ? '♥' : '♡'} Favorite
           </button>
           <button className="btn sell" disabled={fish.favorite} onClick={onSell}>
-            {confirm ? `Tap again to sell for ${value}` : 'Sell'}
+            {confirm ? `Sell for ${value}?` : 'Sell'}
           </button>
         </div>
         {fish.favorite && <p className="note">Favorites can't be sold</p>}
