@@ -49,16 +49,29 @@ input { user-select: text; -webkit-user-select: text; }
 .track { flex: 1; height: 10px; border-radius: 999px; background: #efe8fb; overflow: hidden; }
 .track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffb3c7, #c6a6ff); transition: width 0.4s; }
 
-/* Tank tabs */
-.tabs { display: flex; gap: 6px; }
-.tabscroll { flex: 1; min-width: 0; display: flex; gap: 6px; margin: -4px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
-.tab {
-  flex: none; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 9px;
-  border-radius: 999px; background: rgba(255, 255, 255, 0.7); color: var(--muted);
-  font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(90, 70, 150, 0.1);
+/* Tank switcher */
+.tabs { position: relative; z-index: 5; display: flex; gap: 6px; }
+.switch {
+  flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.85); box-shadow: 0 2px 8px rgba(90, 70, 150, 0.1); white-space: nowrap;
 }
-.tab.on { background: var(--pink); color: var(--ink); }
-.tab.add { padding: 0 13px; font-size: 18px; }
+.switch b { font-weight: 600; }
+.switch svg { color: var(--muted); transition: transform 0.2s; }
+.switch.open svg { transform: rotate(180deg); }
+.iconbtn:disabled { opacity: 0.4; }
+.iconbtn.add { font-size: 24px; color: var(--muted); }
+.listback { position: fixed; inset: 0; z-index: -1; background: none; }
+.tanklist {
+  position: absolute; top: calc(100% + 8px); left: 0; right: 0; display: grid; gap: 2px; padding: 6px;
+  border-radius: 20px; background: var(--card); box-shadow: var(--shadow); animation: fade 0.15s;
+}
+.tanklist button { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; border-radius: 14px; background: none; text-align: left; }
+.tanklist button.on { background: var(--soft); }
+.tanklist b { font-weight: 600; }
+.tanklist small { flex: 1; color: var(--muted); font-size: 13px; }
+.tanklist svg { color: var(--pink-deep); }
+.tanklist .newtank { color: var(--pink-deep); font-weight: 600; }
+.swatch { flex: none; width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: #ff5f87; box-shadow: 0 0 0 1.5px #fff; }
 .iconbtn {
   position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px;
